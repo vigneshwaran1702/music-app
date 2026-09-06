@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import CryptoJS from 'crypto-js';
 import { APP_CONFIG } from '../constants/config';
 import { Song } from '../types/music';
@@ -29,7 +30,6 @@ function decryptMediaUrl(encUrl: string, quality: '320' | '160' | '96' = '320'):
     let url = decrypted.toString(CryptoJS.enc.Utf8);
     if (!url) return '';
 
-    // Adjust quality if available
     if (quality === '320') {
       url = url.replace(/_96\./, '_320.').replace(/_160\./, '_320.');
     } else if (quality === '160') {
@@ -47,6 +47,41 @@ function enhanceArtworkUrl(imgUrl: string): string {
   return imgUrl.replace('150x150', '500x500').replace('50x50', '500x500');
 }
 
+async function fetchSaavn(endpointUrl: string): Promise<any> {
+  const isWeb = Platform.OS === 'web';
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(endpointUrl)}`;
+
+  if (isWeb) {
+    try {
+      const res = await fetch(proxyUrl);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {
+      // try allorigins
+      try {
+        const alt = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(endpointUrl)}`);
+        if (alt.ok) return await alt.json();
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  // Native or direct fetch
+  try {
+    const response = await fetch(endpointUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    if (response.ok) return await response.json();
+  } catch (err) {
+    console.warn('[fetchSaavn] Direct fetch error:', err);
+  }
+  return null;
+}
+
 export const jioSaavnApi = {
   async searchSongs(query: string, limit = 20): Promise<Song[]> {
     if (!query || !query.trim()) return [];
@@ -54,14 +89,8 @@ export const jioSaavnApi = {
       const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&q=${encodeURIComponent(
         query.trim()
       )}&n=${limit}`;
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      if (!response.ok) return [];
-      const data = await response.json();
-      if (!data.results || !Array.isArray(data.results)) return [];
+      const data = await fetchSaavn(url);
+      if (!data || !data.results || !Array.isArray(data.results)) return [];
 
       return data.results
         .map((item: any) => this.mapSong(item))
@@ -72,13 +101,13 @@ export const jioSaavnApi = {
     }
   },
 
-  async getTrendingSongs(language = 'hindi,english,punjabi', limit = 20): Promise<Song[]> {
+  async getTrendingSongs(language = 'hindi,english,punjabi,tamil', limit = 20): Promise<Song[]> {
     try {
       const queries = [
-        'Top Bollywood Hits',
+        'Top Tamil Hits Anirudh',
+        'Top Bollywood Hits Arijit',
         'Trending Global Songs',
-        'Top Punjabi Hits',
-        'Latest Hindi Romantic'
+        'Top Punjabi Hits'
       ];
       const selectedQuery = queries[Math.floor(Math.random() * queries.length)];
       return await this.searchSongs(selectedQuery, limit);
@@ -94,14 +123,8 @@ export const jioSaavnApi = {
       const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=search.getAlbumResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&q=${encodeURIComponent(
         query.trim()
       )}&n=${limit}`;
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      if (!response.ok) return [];
-      const data = await response.json();
-      if (!data.results || !Array.isArray(data.results)) return [];
+      const data = await fetchSaavn(url);
+      if (!data || !data.results || !Array.isArray(data.results)) return [];
 
       return data.results.map((item: any) => ({
         id: `saavn_album_${item.id}`,
@@ -125,14 +148,8 @@ export const jioSaavnApi = {
       const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=search.getArtistResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&q=${encodeURIComponent(
         query.trim()
       )}&n=${limit}`;
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      if (!response.ok) return [];
-      const data = await response.json();
-      if (!data.results || !Array.isArray(data.results)) return [];
+      const data = await fetchSaavn(url);
+      if (!data || !data.results || !Array.isArray(data.results)) return [];
 
       return data.results.map((item: any) => ({
         id: `saavn_artist_${item.id}`,
@@ -151,14 +168,8 @@ export const jioSaavnApi = {
     try {
       const cleanId = albumId.replace('saavn_album_', '');
       const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=content.getAlbumDetails&_format=json&_marker=0&api_version=4&ctx=web6dot0&albumid=${cleanId}`;
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      if (!response.ok) return null;
-      const data = await response.json();
-      if (!data.title && !data.name) return null;
+      const data = await fetchSaavn(url);
+      if (!data || (!data.title && !data.name)) return null;
 
       const songs: Song[] = (data.list || data.songs || []).map((s: any) => this.mapSong(s)).filter((s: Song) => Boolean(s.audioUrl));
 
@@ -185,13 +196,8 @@ export const jioSaavnApi = {
     if (!lyricsId) return '';
     try {
       const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=lyrics.getLyrics&_format=json&_marker=0&api_version=4&ctx=web6dot0&lyrics_id=${lyricsId}`;
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      if (!response.ok) return '';
-      const data = await response.json();
+      const data = await fetchSaavn(url);
+      if (!data) return '';
       return decodeHtmlEntities(data.lyrics || '').replace(/<br\s*[\/]?>/gi, '\n');
     } catch {
       return '';
