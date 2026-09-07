@@ -18,11 +18,21 @@ export const albumApi = {
   async getAlbumById(albumId: string): Promise<Album | null> {
     const curated = CURATED_ALBUMS.find((al) => al.id === albumId);
     if (curated) {
-      const tracks = CURATED_FEATURED_SONGS.filter((s) => s.albumId === albumId);
-      return {
-        ...curated,
-        tracks: tracks.length > 0 ? tracks : CURATED_FEATURED_SONGS.slice(0, 3)
-      };
+      try {
+        const liveTracks = await jioSaavnApi.searchSongs(curated.title.replace('(Original Soundtrack)', '').replace('(Original Motion Picture Soundtrack)', ''), 15);
+        const tracks = liveTracks.length > 0 ? liveTracks : CURATED_FEATURED_SONGS.filter((s) => s.albumId === albumId);
+        return {
+          ...curated,
+          tracks: tracks.length > 0 ? tracks : CURATED_FEATURED_SONGS.slice(0, 5),
+          trackCount: tracks.length || 5
+        };
+      } catch {
+        const tracks = CURATED_FEATURED_SONGS.filter((s) => s.albumId === albumId);
+        return {
+          ...curated,
+          tracks: tracks.length > 0 ? tracks : CURATED_FEATURED_SONGS.slice(0, 3)
+        };
+      }
     }
 
     if (albumId.startsWith('saavn_album_')) {

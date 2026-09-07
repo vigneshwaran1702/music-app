@@ -60,6 +60,16 @@ export const playlistsDb = {
     return target;
   },
 
+  async renamePlaylist(playlistId: string, newTitle: string): Promise<Playlist | null> {
+    const list = await this.getPlaylists();
+    const target = list.find((p) => p.id === playlistId);
+    if (!target) return null;
+    target.title = newTitle;
+    target.updatedAt = new Date().toISOString();
+    await dbStorage.setItem(dbStorage.KEYS.PLAYLISTS, list);
+    return target;
+  },
+
   async deletePlaylist(playlistId: string): Promise<boolean> {
     const list = await this.getPlaylists();
     const updated = list.filter((p) => p.id !== playlistId);
