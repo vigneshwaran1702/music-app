@@ -287,5 +287,79 @@ export const musicApi = {
     }
 
     return null;
+  },
+
+  async getTamilHubData(): Promise<{
+    trending: Song[];
+    hits: Song[];
+    latest: Song[];
+    movieHits: Song[];
+    loveSongs: Song[];
+    melody: Song[];
+    folk: Song[];
+    classics: Song[];
+    topArtists: Artist[];
+  }> {
+    try {
+      const [
+        trending,
+        hits,
+        latest,
+        movieHits,
+        loveSongs,
+        melody,
+        folk,
+        classics,
+        artists
+      ] = await Promise.all([
+        jioSaavnApi.searchSongs('Top Trending Tamil Songs Anirudh', 12),
+        jioSaavnApi.searchSongs('Tamil Blockbuster Hits Kollywood', 12),
+        jioSaavnApi.searchSongs('Latest Tamil Songs 2024', 12),
+        jioSaavnApi.searchSongs('Tamil Movie Hits Vijay Rajini Kamal Ajith', 12),
+        jioSaavnApi.searchSongs('Tamil Romantic Melodies Love Songs', 12),
+        jioSaavnApi.searchSongs('Tamil Soulful Melody Sid Sriram Haricharan', 12),
+        jioSaavnApi.searchSongs('Tamil Kuthu Folk Hits Gaana', 12),
+        jioSaavnApi.searchSongs('Tamil Evergreen 90s SPB Ilayaraja', 12),
+        jioSaavnApi.searchArtists('Anirudh AR Rahman Yuvan Harris Ilayaraja', 8)
+      ]);
+
+      const dedupe = (songs: Song[]): Song[] => {
+        const seen = new Set<string>();
+        return songs.filter((s) => {
+          if (!s.audioUrl || seen.has(s.id)) return false;
+          seen.add(s.id);
+          s.language = 'ta';
+          return true;
+        });
+      };
+
+      const fallbackTamil = CURATED_FEATURED_SONGS.filter((s) => s.language === 'ta');
+
+      return {
+        trending: dedupe(trending).length > 0 ? dedupe(trending) : fallbackTamil,
+        hits: dedupe(hits).length > 0 ? dedupe(hits) : fallbackTamil,
+        latest: dedupe(latest).length > 0 ? dedupe(latest) : fallbackTamil,
+        movieHits: dedupe(movieHits).length > 0 ? dedupe(movieHits) : fallbackTamil,
+        loveSongs: dedupe(loveSongs).length > 0 ? dedupe(loveSongs) : fallbackTamil,
+        melody: dedupe(melody).length > 0 ? dedupe(melody) : fallbackTamil,
+        folk: dedupe(folk).length > 0 ? dedupe(folk) : fallbackTamil,
+        classics: dedupe(classics).length > 0 ? dedupe(classics) : fallbackTamil,
+        topArtists: artists.length > 0 ? artists : CURATED_ARTISTS
+      };
+    } catch (error) {
+      console.warn('[MusicApi] getTamilHubData error:', error);
+      const fallbackTamil = CURATED_FEATURED_SONGS.filter((s) => s.language === 'ta');
+      return {
+        trending: fallbackTamil,
+        hits: fallbackTamil,
+        latest: fallbackTamil,
+        movieHits: fallbackTamil,
+        loveSongs: fallbackTamil,
+        melody: fallbackTamil,
+        folk: fallbackTamil,
+        classics: fallbackTamil,
+        topArtists: CURATED_ARTISTS
+      };
+    }
   }
 };

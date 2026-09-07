@@ -13,7 +13,11 @@ interface PlayerContextType {
   duration: number;
   volume: number;
   playbackMode: PlaybackMode;
+  isRightPanelOpen: boolean;
+  isQueueOpen: boolean;
+  isLyricsOpen: boolean;
   playTrack: (track: Song, newQueue?: Song[]) => Promise<void>;
+  playNext: (track: Song) => void;
   togglePlayPause: () => Promise<void>;
   nextTrack: () => Promise<void>;
   previousTrack: () => Promise<void>;
@@ -22,7 +26,11 @@ interface PlayerContextType {
   togglePlaybackMode: () => void;
   addToQueue: (track: Song) => void;
   removeFromQueue: (index: number) => void;
+  reorderQueue: (fromIndex: number, toIndex: number) => void;
   clearQueue: () => void;
+  toggleRightPanel: () => void;
+  toggleQueue: () => void;
+  toggleLyrics: () => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -37,6 +45,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [duration, setDuration] = useState<number>(0);
   const [volume, setVolume] = useState<number>(1.0);
   const [playbackMode, setPlaybackMode] = useState<PlaybackMode>('normal');
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState<boolean>(false);
+  const [isQueueOpen, setIsQueueOpen] = useState<boolean>(false);
+  const [isLyricsOpen, setIsLyricsOpen] = useState<boolean>(false);
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const isSeekingRef = useRef<boolean>(false);
@@ -62,6 +73,51 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
   }, []);
+
+  // Web keyboard controls
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        // Ignore if user is typing in an input
+        if (
+          e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement ||
+          (e.target as HTMLElement)?.isContentEditable
+        ) {
+          return;
+        }
+
+        if (e.code === 'Space') {
+          e.preventDefault();
+          togglePlayPause();
+        } else if (e.code === 'ArrowRight' && e.shiftKey) {
+          e.preventDefault();
+          nextTrack();
+        } else if (e.code === 'ArrowLeft' && e.shiftKey) {
+          e.preventDefault();
+          previousTrack();
+        } else if (e.code === 'ArrowRight') {
+          e.preventDefault();
+          seekTo(position + 5);
+        } else if (e.code === 'ArrowLeft') {
+          e.preventDefault();
+          seekTo(Math.max(0, position - 5));
+        } else if (e.code === 'ArrowUp') {
+          e.preventDefault();
+          setVolumeLevel(Math.min(1, volume + 0.05));
+        } else if (e.code === 'ArrowDown') {
+          e.preventDefault();
+          setVolumeLevel(Math.max(0, volume - 0.05));
+        } else if (e.key === 'm' || e.key === 'M') {
+          e.preventDefault();
+          setVolumeLevel(volume > 0 ? 0 : 0.8);
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [position, volume, isPlaying, currentTrack]);
 
   const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
     if (!status.isLoaded) {
@@ -145,6 +201,17 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsBuffering(false);
       setIsPlaying(false);
     }
+  };
+
+  const playNext = (track: Song) => {
+    if (!currentTrack) {
+      playTrack(track);
+      return;
+    }
+    const currentIndex = queue.findIndex((s) => s.id === currentTrack.id);
+    const newQueue = [...queue];
+    newQueue.splice(currentIndex + 1, 0, track);
+    setQueue(newQueue);
   };
 
   const togglePlayPause = async () => {
@@ -261,10 +328,22 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setOriginalQueue((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const reorderQueue = (fromIndex: number, toIndex: number) => {
+    if (fromIndex < 0 || toIndex < 0 || fromIndex >= queue.length || toIndex >= queue.length) return;
+    const copy = [...queue];
+    const [moved] = copy.splice(fromIndex, 1);
+    copy.splice(toIndex, 0, moved);
+    setQueue(copy);
+  };
+
   const clearQueue = () => {
     setQueue(currentTrack ? [currentTrack] : []);
     setOriginalQueue(currentTrack ? [currentTrack] : []);
   };
+
+  const toggleRightPanel = () => setIsRightPanelOpen((prev) => !prev);
+  const toggleQueue = () => setIsQueueOpen((prev) => !prev);
+  const toggleLyrics = () => setIsLyricsOpen((prev) => !prev);
 
   return (
     <PlayerContext.Provider
@@ -277,7 +356,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         duration,
         volume,
         playbackMode,
+        isRightPanelOpen,
+        isQueueOpen,
+        isLyricsOpen,
         playTrack,
+        playNext,
         togglePlayPause,
         nextTrack,
         previousTrack,
@@ -286,7 +369,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         togglePlaybackMode,
         addToQueue,
         removeFromQueue,
-        clearQueue
+        reorderQueue,
+        clearQueue,
+        toggleRightPanel,
+        toggleQueue,
+        toggleLyrics
       }}
     >
       {children}
