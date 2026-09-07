@@ -47,13 +47,41 @@ function enhanceArtworkUrl(imgUrl: string): string {
   return imgUrl.replace('150x150', '500x500').replace('50x50', '500x500');
 }
 
+const SAAVN_HEADERS: Record<string, string> = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  Accept: 'application/json, text/plain, */*',
+  'Accept-Language': 'en-US,en;q=0.9,ta;q=0.8,hi;q=0.7',
+  Referer: 'https://www.jiosaavn.com/',
+  Origin: 'https://www.jiosaavn.com',
+  Cookie: 'L=tamil%2Chindi%2Cenglish%2Ctelugu%2Cpunjabi%2Cmalayalam%2Ckannada;'
+};
+
 async function fetchSaavn(endpointUrl: string): Promise<any> {
   const isWeb = Platform.OS === 'web';
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(endpointUrl)}`;
 
+  // 1. Direct fetch with full headers (Works on React Native iOS & Android, plus Node/Direct)
+  try {
+    const response = await fetch(endpointUrl, {
+      headers: SAAVN_HEADERS
+    });
+    if (response.ok) {
+      const data = await response.json();
+      if (data && (data.results || data.list || data.songs || data.id || data.title)) {
+        return data;
+      }
+    }
+  } catch (err) {
+    if (!isWeb) {
+      console.warn('[fetchSaavn] Direct fetch error:', err);
+    }
+  }
+
+  // 2. Web fallback proxy for browser CORS restrictions
   if (isWeb) {
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(endpointUrl)}`;
     try {
-      const res = await fetch(proxyUrl);
+      const res = await fetch(proxyUrl, { headers: SAAVN_HEADERS });
       if (res.ok) {
         return await res.json();
       }
@@ -68,17 +96,6 @@ async function fetchSaavn(endpointUrl: string): Promise<any> {
     }
   }
 
-  // Native or direct fetch
-  try {
-    const response = await fetch(endpointUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    if (response.ok) return await response.json();
-  } catch (err) {
-    console.warn('[fetchSaavn] Direct fetch error:', err);
-  }
   return null;
 }
 
