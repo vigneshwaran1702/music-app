@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Image,
   RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,7 +18,6 @@ import { Artist } from '../types/artist';
 import { SongCard } from '../components/SongCard';
 import { ArtistCard } from '../components/ArtistCard';
 import { Loading } from '../components/Loading';
-import { APP_CONFIG } from '../constants/config';
 
 type TamilCategory =
   | 'all'
@@ -34,7 +32,7 @@ type TamilCategory =
 
 export default function TamilMusicHubScreen() {
   const router = useRouter();
-  const { playTrack, currentTrack, isPlaying, togglePlayPause } = usePlayer();
+  const { playTrack } = usePlayer();
   const [activeCategory, setActiveCategory] = useState<TamilCategory>('all');
   const [loading, setLoading] = useState(true);
 
@@ -110,15 +108,15 @@ export default function TamilMusicHubScreen() {
           <RefreshControl
             refreshing={loading}
             onRefresh={fetchTamilData}
-            tintColor={APP_CONFIG.THEME.accentTamil}
+            tintColor="#f97316"
           />
         }
       >
         {/* Hub Header Banner */}
         <LinearGradient
-          colors={['#f97316', '#dc2626', '#7f1d1d']}
+          colors={['#ea580c', '#9a3412', '#121212']}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          end={{ x: 0, y: 1 }}
           style={styles.heroBanner}
         >
           <View style={styles.badgeRow}>
@@ -137,14 +135,16 @@ export default function TamilMusicHubScreen() {
               <TouchableOpacity
                 style={styles.playAllBtn}
                 onPress={() => playTrack(heroSong || allSongsFlat[0], allSongsFlat)}
+                activeOpacity={0.85}
               >
-                <Ionicons name="play" size={18} color="#000000" />
+                <Ionicons name="play" size={20} color="#000000" />
                 <Text style={styles.playAllText}>Play Tamil Hits</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.searchTamilBtn}
                 onPress={() => router.push('/search')}
+                activeOpacity={0.8}
               >
                 <Ionicons name="search" size={18} color="#ffffff" />
                 <Text style={styles.searchTamilText}>Search Tamil</Text>
@@ -170,7 +170,7 @@ export default function TamilMusicHubScreen() {
                 <Ionicons
                   name={cat.icon as any}
                   size={15}
-                  color={isActive ? '#ffffff' : APP_CONFIG.THEME.textSecondary}
+                  color={isActive ? '#000000' : '#ffffff'}
                 />
                 <Text
                   style={[
@@ -202,12 +202,13 @@ export default function TamilMusicHubScreen() {
                 </View>
 
                 <View style={styles.listGrid}>
-                  {((data[activeCategory as keyof typeof data] as Song[]) || []).map((song) => (
+                  {((data[activeCategory as keyof typeof data] as Song[]) || []).map((song, idx) => (
                     <SongCard
                       key={song.id}
                       song={song}
                       playlist={(data[activeCategory as keyof typeof data] as Song[]) || []}
                       variant="list"
+                      index={idx}
                     />
                   ))}
                 </View>
@@ -220,11 +221,11 @@ export default function TamilMusicHubScreen() {
                   <View style={styles.sectionContainer}>
                     <View style={styles.sectionHeaderRow}>
                       <View style={styles.titleWithIcon}>
-                        <Ionicons name="flame" size={20} color={APP_CONFIG.THEME.accentTamil} />
+                        <Ionicons name="flame" size={20} color="#f97316" />
                         <Text style={styles.sectionTitle}>Tamil Trending Now</Text>
                       </View>
                       <TouchableOpacity onPress={() => setActiveCategory('trending')}>
-                        <Text style={styles.seeAllText}>See all</Text>
+                        <Text style={styles.seeAllText}>Show all</Text>
                       </TouchableOpacity>
                     </View>
                     <ScrollView
@@ -249,11 +250,11 @@ export default function TamilMusicHubScreen() {
                   <View style={styles.sectionContainer}>
                     <View style={styles.sectionHeaderRow}>
                       <View style={styles.titleWithIcon}>
-                        <Ionicons name="people" size={20} color={APP_CONFIG.THEME.accentPrimary} />
+                        <Ionicons name="people" size={20} color="#1ed760" />
                         <Text style={styles.sectionTitle}>Top Tamil Composers & Singers</Text>
                       </View>
                       <TouchableOpacity onPress={() => router.push('/artists')}>
-                        <Text style={styles.seeAllText}>View all</Text>
+                        <Text style={styles.seeAllText}>Show all</Text>
                       </TouchableOpacity>
                     </View>
                     <ScrollView
@@ -277,7 +278,7 @@ export default function TamilMusicHubScreen() {
                         <Text style={styles.sectionTitle}>Kollywood Blockbusters</Text>
                       </View>
                       <TouchableOpacity onPress={() => setActiveCategory('hits')}>
-                        <Text style={styles.seeAllText}>See all</Text>
+                        <Text style={styles.seeAllText}>Show all</Text>
                       </TouchableOpacity>
                     </View>
                     <ScrollView
@@ -302,11 +303,11 @@ export default function TamilMusicHubScreen() {
                   <View style={styles.sectionContainer}>
                     <View style={styles.sectionHeaderRow}>
                       <View style={styles.titleWithIcon}>
-                        <Ionicons name="heart" size={20} color={APP_CONFIG.THEME.accentSecondary} />
+                        <Ionicons name="heart" size={20} color="#ec4899" />
                         <Text style={styles.sectionTitle}>Tamil Love & Romantic Melodies</Text>
                       </View>
                       <TouchableOpacity onPress={() => setActiveCategory('loveSongs')}>
-                        <Text style={styles.seeAllText}>See all</Text>
+                        <Text style={styles.seeAllText}>Show all</Text>
                       </TouchableOpacity>
                     </View>
                     <ScrollView
@@ -335,16 +336,17 @@ export default function TamilMusicHubScreen() {
                         <Text style={styles.sectionTitle}>Kuthu & Gaana Hits</Text>
                       </View>
                       <TouchableOpacity onPress={() => setActiveCategory('folk')}>
-                        <Text style={styles.seeAllText}>See all</Text>
+                        <Text style={styles.seeAllText}>Show all</Text>
                       </TouchableOpacity>
                     </View>
                     <View style={styles.verticalListWrap}>
-                      {data.folk.slice(0, 6).map((song) => (
+                      {data.folk.slice(0, 6).map((song, idx) => (
                         <SongCard
                           key={song.id}
                           song={song}
                           playlist={data.folk}
                           variant="list"
+                          index={idx}
                         />
                       ))}
                     </View>
@@ -360,16 +362,17 @@ export default function TamilMusicHubScreen() {
                         <Text style={styles.sectionTitle}>Soulful Melodies</Text>
                       </View>
                       <TouchableOpacity onPress={() => setActiveCategory('melody')}>
-                        <Text style={styles.seeAllText}>See all</Text>
+                        <Text style={styles.seeAllText}>Show all</Text>
                       </TouchableOpacity>
                     </View>
                     <View style={styles.verticalListWrap}>
-                      {data.melody.slice(0, 6).map((song) => (
+                      {data.melody.slice(0, 6).map((song, idx) => (
                         <SongCard
                           key={song.id}
                           song={song}
                           playlist={data.melody}
                           variant="list"
+                          index={idx}
                         />
                       ))}
                     </View>
@@ -385,7 +388,7 @@ export default function TamilMusicHubScreen() {
                         <Text style={styles.sectionTitle}>90s & Evergreen Tamil Classics</Text>
                       </View>
                       <TouchableOpacity onPress={() => setActiveCategory('classics')}>
-                        <Text style={styles.seeAllText}>See all</Text>
+                        <Text style={styles.seeAllText}>Show all</Text>
                       </TouchableOpacity>
                     </View>
                     <ScrollView
@@ -416,27 +419,23 @@ export default function TamilMusicHubScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: APP_CONFIG.THEME.background
+    backgroundColor: '#121212'
   },
   scrollContent: {
     paddingBottom: 120
   },
   heroBanner: {
-    margin: 20,
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: '#f97316',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 32,
+    marginBottom: 8
   },
   badgeRow: {
     flexDirection: 'row',
-    marginBottom: 10
+    marginBottom: 12
   },
   flagBadge: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 12
@@ -448,7 +447,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8
   },
   heroTitle: {
-    fontSize: 28,
+    fontSize: 34,
     fontWeight: '900',
     color: '#ffffff',
     marginBottom: 8,
@@ -458,8 +457,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
     lineHeight: 20,
-    marginBottom: 18,
-    maxWidth: 580
+    marginBottom: 20,
+    maxWidth: 620
   },
   heroActionRow: {
     flexDirection: 'row',
@@ -469,8 +468,8 @@ const styles = StyleSheet.create({
   playAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 20,
+    backgroundColor: '#1ed760',
+    paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24,
     gap: 8,
@@ -488,10 +487,10 @@ const styles = StyleSheet.create({
   searchTamilBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    paddingHorizontal: 18,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 24,
     gap: 8
@@ -502,44 +501,41 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   categoryChipsScroll: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 16,
     gap: 8
   },
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#141727',
-    borderWidth: 1,
-    borderColor: '#22273e',
+    backgroundColor: '#232323',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     gap: 6
   },
   categoryChipActive: {
-    backgroundColor: APP_CONFIG.THEME.accentTamil,
-    borderColor: APP_CONFIG.THEME.accentTamil
+    backgroundColor: '#ffffff'
   },
   categoryChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: APP_CONFIG.THEME.textSecondary
+    color: '#ffffff'
   },
   categoryChipTextActive: {
-    color: '#ffffff',
+    color: '#000000',
     fontWeight: '700'
   },
   sectionContainer: {
-    marginTop: 14,
-    marginBottom: 8
+    marginTop: 16,
+    marginBottom: 16
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12
+    paddingHorizontal: 24,
+    marginBottom: 14
   },
   titleWithIcon: {
     flexDirection: 'row',
@@ -547,27 +543,28 @@ const styles = StyleSheet.create({
     gap: 8
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '700',
-    color: APP_CONFIG.THEME.textPrimary
+    color: '#ffffff',
+    letterSpacing: -0.3
   },
   itemCountText: {
-    fontSize: 12,
-    color: APP_CONFIG.THEME.textMuted
+    fontSize: 13,
+    color: '#a7a7a7'
   },
   seeAllText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: APP_CONFIG.THEME.accentTamil
+    fontWeight: '700',
+    color: '#a7a7a7'
   },
   horizontalScroll: {
-    paddingLeft: 20,
-    paddingRight: 8
+    paddingLeft: 24,
+    paddingRight: 12
   },
   verticalListWrap: {
-    paddingHorizontal: 20
+    paddingHorizontal: 24
   },
   listGrid: {
-    paddingHorizontal: 20
+    paddingHorizontal: 24
   }
 });

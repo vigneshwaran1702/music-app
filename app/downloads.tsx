@@ -6,7 +6,6 @@ import { useDownloads } from '../hooks/useDownloads';
 import { usePlayer } from '../hooks/usePlayer';
 import { SongCard } from '../components/SongCard';
 import { Loading } from '../components/Loading';
-import { APP_CONFIG } from '../constants/config';
 
 export default function DownloadsScreen() {
   const { downloads, loading, totalSize, removeDownload } = useDownloads();
@@ -26,18 +25,18 @@ export default function DownloadsScreen() {
         {/* Storage Card */}
         <View style={styles.storageCard}>
           <View style={styles.storageInfo}>
-            <Ionicons name="hardware-chip-outline" size={28} color={APP_CONFIG.THEME.accentCyan} />
+            <Ionicons name="cloud-done" size={28} color="#1ed760" />
             <View style={styles.storageMeta}>
-              <Text style={styles.storageTitle}>Offline Storage</Text>
+              <Text style={styles.storageTitle}>Downloaded Music</Text>
               <Text style={styles.storageSubtitle}>
-                {downloads.length} tracks downloaded ({formattedMB} MB)
+                {downloads.length} offline tracks • {formattedMB} MB saved
               </Text>
             </View>
           </View>
 
           {songs.length > 0 && (
-            <TouchableOpacity style={styles.playAllBtn} onPress={handlePlayAll}>
-              <Ionicons name="play" size={16} color="#ffffff" />
+            <TouchableOpacity style={styles.playAllBtn} onPress={handlePlayAll} activeOpacity={0.85}>
+              <Ionicons name="play" size={16} color="#000000" />
               <Text style={styles.playAllText}>Play Offline</Text>
             </TouchableOpacity>
           )}
@@ -47,7 +46,7 @@ export default function DownloadsScreen() {
           <Loading message="Checking offline tracks..." />
         ) : downloads.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Ionicons name="cloud-offline-outline" size={64} color={APP_CONFIG.THEME.textMuted} />
+            <Ionicons name="cloud-offline-outline" size={64} color="#a7a7a7" />
             <Text style={styles.emptyTitle}>No Downloaded Songs</Text>
             <Text style={styles.emptySub}>
               Download songs for seamless offline listening without internet or mobile data.
@@ -55,17 +54,23 @@ export default function DownloadsScreen() {
           </View>
         ) : (
           <View style={styles.list}>
-            <Text style={styles.listHeader}>Downloaded Songs</Text>
-            {downloads.map((item) => (
+            <Text style={styles.listHeader}>Offline Tracks ({downloads.length})</Text>
+            {downloads.map((item, idx) => (
               <View key={item.song.id} style={styles.downloadRow}>
                 <View style={styles.songWrapper}>
-                  <SongCard song={item.song} playlist={songs} variant="list" showActions={false} />
+                  <SongCard
+                    song={item.song}
+                    playlist={songs}
+                    variant="list"
+                    showActions={false}
+                    index={idx}
+                  />
                 </View>
                 <TouchableOpacity
                   style={styles.deleteBtn}
                   onPress={() => removeDownload(item.song.id)}
                 >
-                  <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                  <Ionicons name="trash-outline" size={18} color="#a7a7a7" />
                 </TouchableOpacity>
               </View>
             ))}
@@ -79,19 +84,17 @@ export default function DownloadsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: APP_CONFIG.THEME.background
+    backgroundColor: '#121212'
   },
   content: {
-    padding: 20,
-    paddingBottom: 110
+    padding: 24,
+    paddingBottom: 120
   },
   storageCard: {
-    backgroundColor: APP_CONFIG.THEME.cardBackground,
-    borderRadius: 16,
+    backgroundColor: '#181818',
+    borderRadius: 8,
     padding: 16,
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: APP_CONFIG.THEME.border,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center'
@@ -101,28 +104,28 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   storageMeta: {
-    marginLeft: 12
+    marginLeft: 14
   },
   storageTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
-    color: APP_CONFIG.THEME.textPrimary
+    color: '#ffffff'
   },
   storageSubtitle: {
-    fontSize: 12,
-    color: APP_CONFIG.THEME.textSecondary,
+    fontSize: 13,
+    color: '#a7a7a7',
     marginTop: 2
   },
   playAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: APP_CONFIG.THEME.accentCyan,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    backgroundColor: '#1ed760',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
     borderRadius: 20
   },
   playAllText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     color: '#000000',
     marginLeft: 4
@@ -132,32 +135,33 @@ const styles = StyleSheet.create({
     paddingVertical: 64
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: APP_CONFIG.THEME.textPrimary,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#ffffff',
     marginTop: 14
   },
   emptySub: {
     fontSize: 13,
-    color: APP_CONFIG.THEME.textSecondary,
+    color: '#a7a7a7',
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 18,
-    maxWidth: '80%'
+    maxWidth: 340
   },
   list: {
     marginTop: 4
   },
   listHeader: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: '700',
-    color: APP_CONFIG.THEME.textPrimary,
-    marginBottom: 12
+    color: '#ffffff',
+    marginBottom: 14,
+    letterSpacing: -0.3
   },
   downloadRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6
+    marginBottom: 2
   },
   songWrapper: {
     flex: 1

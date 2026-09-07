@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,32 +15,40 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMusic } from '../hooks/useMusic';
 import { usePlayer } from '../hooks/usePlayer';
+import { useResponsive } from '../hooks/useResponsive';
 import { historyDb } from '../database/history';
 import { favoritesDb } from '../database/favorites';
 import { Song } from '../types/music';
-import { LANGUAGES } from '../constants/languages';
 import { CURATED_ARTISTS, CURATED_ALBUMS } from '../api/sources';
 import { SongCard } from '../components/SongCard';
 import { ArtistCard } from '../components/ArtistCard';
 import { AlbumCard } from '../components/AlbumCard';
-import { LanguageCard } from '../components/LanguageCard';
 import { Loading } from '../components/Loading';
 import { APP_CONFIG } from '../constants/config';
 
+type HomeFilter = 'all' | 'tamil' | 'music' | 'trending';
+
 export default function HomeScreen() {
   const router = useRouter();
+  const { isDesktop, isTablet } = useResponsive();
   const { loading, featured, trending, newReleases, chillOut, refresh } = useMusic();
-  const { playTrack, currentTrack, isPlaying, togglePlayPause } = usePlayer();
+  const { playTrack, currentTrack } = usePlayer();
 
+  const [activeFilter, setActiveFilter] = useState<HomeFilter>('all');
   const [recentHistory, setRecentHistory] = useState<Song[]>([]);
   const [likedCount, setLikedCount] = useState<number>(0);
 
+  // Carousel refs for desktop scroll arrows
+  const tamilScrollRef = useRef<ScrollView>(null);
+  const trendingScrollRef = useRef<ScrollView>(null);
+  const artistScrollRef = useRef<ScrollView>(null);
+  const albumScrollRef = useRef<ScrollView>(null);
+
   useEffect(() => {
-    historyDb.getListeningHistory().then((h) => setRecentHistory(h.slice(0, 6)));
+    historyDb.getListeningHistory().then((h) => setRecentHistory(h.slice(0, 8)));
     favoritesDb.getFavorites().then((favs) => setLikedCount(favs.length));
   }, [currentTrack]);
 
-  // Dynamic greeting based on local time
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -48,64 +56,148 @@ export default function HomeScreen() {
     return 'Good evening';
   };
 
-  const heroSong = featured[0] || trending[0];
-  const tamilSongs = trending.filter((s) => s.language === 'ta' || (s.genre || '').toLowerCase().includes('kollywood'));
-  const recommendedTracks = recentHistory.length > 0 ? [...recentHistory, ...featured] : featured;
+  const tamilSongs = trending.filter(
+    (s) => s.language === 'ta' || (s.genre || '').toLowerCase().includes('kollywood')
+  );
 
-  // Quick Access 6 items
   const quickAccessItems = [
-    {
-      id: 'qa_tamil',
-      title: 'Top Tamil Hits',
-      icon: 'flame',
-      gradient: ['#f97316', '#dc2626'] as [string, string],
-      route: '/tamil',
-      songs: tamilSongs.length > 0 ? tamilSongs : trending
-    },
     {
       id: 'qa_liked',
       title: 'Liked Songs',
       icon: 'heart',
-      gradient: ['#ec4899', '#8b5cf6'] as [string, string],
+      bg: '#450af5',
       route: '/favorites',
+      songs: trending
+    },
+    {
+      id: 'qa_tamil',
+      title: 'Top Tamil Chartbusters',
+      icon: 'flame',
+      bg: '#ea580c',
+      route: '/tamil',
+      songs: tamilSongs.length > 0 ? tamilSongs : trending
+    },
+    {
+      id: 'qa_anirudh',
+      title: 'Anirudh Hits',
+      icon: 'flash',
+      bg: '#eab308',
+      route: '/artist/artist_anirudh',
+      songs: trending
+    },
+    {
+      id: 'qa_arrahman',
+      title: 'A.R. Rahman Essentials',
+      icon: 'musical-notes',
+      bg: '#0284c7',
+      route: '/artist/artist_arrahman',
       songs: trending
     },
     {
       id: 'qa_history',
       title: 'Recently Played',
       icon: 'time',
-      gradient: ['#06b6d4', '#3b82f6'] as [string, string],
+      bg: '#059669',
       route: '/library',
       songs: recentHistory.length > 0 ? recentHistory : trending
     },
     {
-      id: 'qa_anirudh',
-      title: 'Anirudh Specials',
-      icon: 'flash',
-      gradient: ['#eab308', '#f97316'] as [string, string],
-      route: '/artist/artist_anirudh',
-      songs: trending
-    },
-    {
-      id: 'qa_new',
-      title: 'Fresh Releases',
+      id: 'qa_fresh',
+      title: 'New Releases 2024',
       icon: 'sparkles',
-      gradient: ['#10b981', '#06b6d4'] as [string, string],
+      bg: '#7c3aed',
       route: '/search',
       songs: newReleases
     },
     {
+      id: 'qa_jailer',
+      title: 'Jailer (Soundtrack)',
+      icon: 'disc',
+      bg: '#b91c1c',
+      route: '/album/album_jailer',
+      songs: trending
+    },
+    {
       id: 'qa_chill',
-      title: 'Chill Lo-Fi',
+      title: 'Chill Lo-Fi Beats',
       icon: 'cafe',
-      gradient: ['#6366f1', '#a855f7'] as [string, string],
+      bg: '#4f46e5',
       route: '/search',
       songs: chillOut
     }
   ];
 
+  const scrollCarousel = (ref: React.RefObject<ScrollView>, direction: 'left' | 'right') => {
+    // @ts-ignore
+    ref.current?.scrollTo?.({
+      x: direction === 'right' ? 600 : -600,
+      animated: true
+    });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Sticky Top Navigation Bar (Frosted Translucent) */}
+      <View style={styles.topStickyHeader}>
+        <View style={styles.navHistoryArrows}>
+          <TouchableOpacity
+            style={styles.arrowCircle}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={20} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Filter Pills */}
+        <View style={styles.topFilterPills}>
+          <TouchableOpacity
+            style={[styles.topPill, activeFilter === 'all' && styles.topPillActive]}
+            onPress={() => setActiveFilter('all')}
+          >
+            <Text style={[styles.topPillText, activeFilter === 'all' && styles.topPillTextActive]}>
+              All
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.topPill, activeFilter === 'tamil' && styles.topPillActive, styles.tamilSpecialPill]}
+            onPress={() => router.push('/tamil' as any)}
+          >
+            <Text style={[styles.topPillText, activeFilter === 'tamil' && styles.topPillTextActive, { color: '#f97316' }]}>
+              Tamil Hits 🇮🇳
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.topPill, activeFilter === 'music' && styles.topPillActive]}
+            onPress={() => setActiveFilter('music')}
+          >
+            <Text style={[styles.topPillText, activeFilter === 'music' && styles.topPillTextActive]}>
+              Music
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.topPill, activeFilter === 'trending' && styles.topPillActive]}
+            onPress={() => setActiveFilter('trending')}
+          >
+            <Text style={[styles.topPillText, activeFilter === 'trending' && styles.topPillTextActive]}>
+              Trending
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* User Profile Avatar */}
+        <TouchableOpacity
+          style={styles.userAvatarBtn}
+          onPress={() => router.push('/library' as any)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="person" size={16} color="#ffffff" />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -113,129 +205,63 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={loading}
             onRefresh={refresh}
-            tintColor={APP_CONFIG.THEME.accentPrimary}
+            tintColor="#1ed760"
           />
         }
       >
-        {/* Top Greeting Header */}
-        <View style={styles.topHeader}>
-          <View>
-            <Text style={styles.greetingText}>{getGreeting()}</Text>
-            <Text style={styles.brandTitle}>{APP_CONFIG.APP_NAME}</Text>
+        {/* Dynamic Atmospheric Ambient Gradient Backdrop */}
+        <LinearGradient
+          colors={['#1e3a5f', '#142033', '#121212']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.ambientBackdrop}
+        >
+          {/* Greeting */}
+          <Text style={styles.greetingHeading}>{getGreeting()}</Text>
+
+          {/* Scalable Pinned Quick Access Grid */}
+          <View style={styles.quickAccessGrid}>
+            {quickAccessItems.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[
+                  styles.quickAccessTile,
+                  isDesktop ? styles.quickAccessTileDesktop : isTablet ? styles.quickAccessTileTablet : styles.quickAccessTileMobile
+                ]}
+                activeOpacity={0.8}
+                onPress={() => router.push(item.route as any)}
+              >
+                <View style={[styles.quickTileThumb, { backgroundColor: item.bg }]}>
+                  <Ionicons name={item.icon as any} size={22} color="#ffffff" />
+                </View>
+
+                <Text numberOfLines={1} style={styles.quickTileTitle}>
+                  {item.title}
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.quickTilePlayBtn}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    if (item.songs && item.songs.length > 0) {
+                      playTrack(item.songs[0], item.songs);
+                    }
+                  }}
+                >
+                  <Ionicons name="play" size={18} color="#000000" />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
           </View>
-
-          <View style={styles.headerIcons}>
-            <TouchableOpacity
-              style={[styles.iconBtn, styles.tamilHeaderBtn]}
-              onPress={() => router.push('/tamil' as any)}
-            >
-              <Ionicons name="flame" size={18} color="#ffffff" />
-              <Text style={styles.tamilBtnText}>தமிழ்</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/search' as any)}>
-              <Ionicons name="search" size={20} color={APP_CONFIG.THEME.textPrimary} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/favorites' as any)}>
-              <Ionicons name="heart-outline" size={20} color={APP_CONFIG.THEME.textPrimary} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/library' as any)}>
-              <Ionicons name="library-outline" size={20} color={APP_CONFIG.THEME.textPrimary} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        </LinearGradient>
 
         {loading && !featured.length ? (
-          <Loading message="Streaming music streams..." />
+          <Loading message="Streaming music catalog..." />
         ) : (
-          <>
-            {/* Quick Access Grid (Spotify style) */}
-            <View style={styles.quickAccessContainer}>
-              <View style={styles.quickAccessGrid}>
-                {quickAccessItems.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={styles.quickAccessCard}
-                    activeOpacity={0.8}
-                    onPress={() => router.push(item.route as any)}
-                  >
-                    <LinearGradient
-                      colors={item.gradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.quickAccessIconBox}
-                    >
-                      <Ionicons name={item.icon as any} size={22} color="#ffffff" />
-                    </LinearGradient>
-
-                    <Text numberOfLines={1} style={styles.quickAccessTitle}>
-                      {item.title}
-                    </Text>
-
-                    <TouchableOpacity
-                      style={styles.quickPlayBtn}
-                      onPress={(e) => {
-                        e.stopPropagation?.();
-                        if (item.songs && item.songs.length > 0) {
-                          playTrack(item.songs[0], item.songs);
-                        }
-                      }}
-                    >
-                      <Ionicons name="play" size={16} color="#ffffff" />
-                    </TouchableOpacity>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Featured Hero Banner */}
-            {heroSong && (
-              <View style={styles.heroCardContainer}>
-                <Image source={{ uri: heroSong.coverUrl }} style={styles.heroImage} />
-                <LinearGradient
-                  colors={['transparent', 'rgba(9, 10, 16, 0.95)']}
-                  style={styles.heroGradient}
-                >
-                  <View style={styles.featuredBadge}>
-                    <Text style={styles.featuredBadgeText}>FEATURED TRACK</Text>
-                  </View>
-                  <Text numberOfLines={1} style={styles.heroTitle}>
-                    {heroSong.title}
-                  </Text>
-                  <Text numberOfLines={1} style={styles.heroArtist}>
-                    {heroSong.artistName} • {heroSong.genre}
-                  </Text>
-                  <View style={styles.heroActions}>
-                    <TouchableOpacity
-                      activeOpacity={0.85}
-                      style={styles.heroPlayButton}
-                      onPress={() => {
-                        if (currentTrack?.id === heroSong.id) {
-                          togglePlayPause();
-                        } else {
-                          playTrack(heroSong, featured);
-                        }
-                      }}
-                    >
-                      <Ionicons
-                        name={currentTrack?.id === heroSong.id && isPlaying ? 'pause' : 'play'}
-                        size={18}
-                        color="#ffffff"
-                      />
-                      <Text style={styles.heroPlayText}>
-                        {currentTrack?.id === heroSong.id && isPlaying ? 'Pause' : 'Play Now'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </LinearGradient>
-              </View>
-            )}
-
-            {/* Tamil Hub Spotlight Banner */}
+          <View style={styles.sectionsContainer}>
+            {/* 1. Tamil Music Spotlight Hub Banner */}
             <TouchableOpacity
-              style={styles.tamilSpotlightCard}
+              style={styles.tamilHubBanner}
               activeOpacity={0.9}
               onPress={() => router.push('/tamil' as any)}
             >
@@ -243,77 +269,39 @@ export default function HomeScreen() {
                 colors={['#ea580c', '#c2410c', '#7c2d12']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={styles.tamilSpotlightGradient}
+                style={styles.tamilBannerGradient}
               >
-                <View style={styles.tamilSpotlightContent}>
-                  <View style={styles.tamilPillBadge}>
-                    <Text style={styles.tamilPillText}>SPECIAL HUB</Text>
+                <View style={styles.tamilBannerContent}>
+                  <View style={styles.tamilBadgePill}>
+                    <Text style={styles.tamilBadgePillText}>SPOTLIGHT</Text>
                   </View>
-                  <Text style={styles.tamilSpotlightTitle}>Tamil Music Chartbusters</Text>
-                  <Text style={styles.tamilSpotlightSubtitle}>
-                    Anirudh, AR Rahman, Yuvan, Harris, Santhosh Narayanan & evergreen Kollywood hits.
+                  <Text style={styles.tamilBannerTitle}>Tamil Music Chartbusters</Text>
+                  <Text style={styles.tamilBannerSubtitle}>
+                    Anirudh, AR Rahman, Yuvan, Harris, Santhosh Narayanan & evergreen Kollywood blockbusters.
                   </Text>
                 </View>
-                <View style={styles.tamilArrowCircle}>
+                <View style={styles.tamilBannerPlayBtn}>
                   <Ionicons name="arrow-forward" size={20} color="#ffffff" />
                 </View>
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* 1. Trending Now Section */}
-            <View style={styles.sectionHeaderRow}>
-              <View style={styles.sectionTitleRow}>
-                <Ionicons name="trending-up" size={20} color={APP_CONFIG.THEME.accentPrimary} />
-                <Text style={styles.sectionTitle}>Trending Now</Text>
-              </View>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalScroll}
-            >
-              {trending.map((song) => (
-                <SongCard key={song.id} song={song} playlist={trending} variant="card" />
-              ))}
-            </ScrollView>
-
-            {/* 2. Recommended For You */}
-            {recommendedTracks.length > 0 && (
-              <View style={styles.sectionContainer}>
-                <View style={styles.sectionHeaderRow}>
-                  <View style={styles.sectionTitleRow}>
-                    <Ionicons name="sparkles" size={20} color="#ec4899" />
-                    <Text style={styles.sectionTitle}>Recommended For You</Text>
-                  </View>
-                </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.horizontalScroll}
-                >
-                  {recommendedTracks.slice(0, 8).map((song) => (
-                    <SongCard key={song.id} song={song} playlist={recommendedTracks} variant="card" />
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
-            {/* 3. Tamil Blockbusters */}
+            {/* 2. Top Tamil Hits Section with Navigation Arrows */}
             {tamilSongs.length > 0 && (
-              <View style={styles.sectionContainer}>
-                <View style={styles.sectionHeaderRow}>
-                  <View style={styles.sectionTitleRow}>
-                    <Ionicons name="flame" size={20} color={APP_CONFIG.THEME.accentTamil} />
-                    <Text style={styles.sectionTitle}>Top Tamil Hits</Text>
+              <View style={styles.sectionBlock}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Top Tamil Blockbusters</Text>
+                  <View style={styles.sectionHeaderRight}>
+                    <TouchableOpacity onPress={() => router.push('/tamil' as any)}>
+                      <Text style={styles.showAllText}>Show all</Text>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity onPress={() => router.push('/tamil' as any)}>
-                    <Text style={styles.seeAllText}>Explore Tamil Hub</Text>
-                  </TouchableOpacity>
                 </View>
                 <ScrollView
+                  ref={tamilScrollRef}
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.horizontalScroll}
+                  contentContainerStyle={styles.cardsRow}
                 >
                   {tamilSongs.map((song) => (
                     <SongCard key={song.id} song={song} playlist={tamilSongs} variant="card" />
@@ -322,21 +310,39 @@ export default function HomeScreen() {
               </View>
             )}
 
-            {/* 4. Top Artists */}
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionHeaderRow}>
-                <View style={styles.sectionTitleRow}>
-                  <Ionicons name="people" size={20} color="#06b6d4" />
-                  <Text style={styles.sectionTitle}>Popular Artists</Text>
-                </View>
-                <TouchableOpacity onPress={() => router.push('/artists')}>
-                  <Text style={styles.seeAllText}>View all</Text>
+            {/* 3. Trending Now Worldwide */}
+            <View style={styles.sectionBlock}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Trending Now</Text>
+                <TouchableOpacity onPress={() => router.push('/search' as any)}>
+                  <Text style={styles.showAllText}>Show all</Text>
                 </TouchableOpacity>
               </View>
               <ScrollView
+                ref={trendingScrollRef}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalScroll}
+                contentContainerStyle={styles.cardsRow}
+              >
+                {trending.map((song) => (
+                  <SongCard key={song.id} song={song} playlist={trending} variant="card" />
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* 4. Popular Artists */}
+            <View style={styles.sectionBlock}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Popular Artists</Text>
+                <TouchableOpacity onPress={() => router.push('/artists' as any)}>
+                  <Text style={styles.showAllText}>Show all</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                ref={artistScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.cardsRow}
               >
                 {CURATED_ARTISTS.map((artist) => (
                   <ArtistCard key={artist.id} artist={artist} />
@@ -344,21 +350,19 @@ export default function HomeScreen() {
               </ScrollView>
             </View>
 
-            {/* 5. Popular Albums */}
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionHeaderRow}>
-                <View style={styles.sectionTitleRow}>
-                  <Ionicons name="disc" size={20} color="#a855f7" />
-                  <Text style={styles.sectionTitle}>Popular Albums & Soundtracks</Text>
-                </View>
-                <TouchableOpacity onPress={() => router.push('/albums')}>
-                  <Text style={styles.seeAllText}>View all</Text>
+            {/* 5. Popular Albums & Soundtracks */}
+            <View style={styles.sectionBlock}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Popular Albums & Soundtracks</Text>
+                <TouchableOpacity onPress={() => router.push('/albums' as any)}>
+                  <Text style={styles.showAllText}>Show all</Text>
                 </TouchableOpacity>
               </View>
               <ScrollView
+                ref={albumScrollRef}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalScroll}
+                contentContainerStyle={styles.cardsRow}
               >
                 {CURATED_ALBUMS.map((album) => (
                   <AlbumCard key={album.id} album={album} />
@@ -366,50 +370,40 @@ export default function HomeScreen() {
               </ScrollView>
             </View>
 
-            {/* 6. Fresh Releases List */}
-            <View style={styles.verticalSection}>
-              <View style={styles.sectionHeaderRowNoPad}>
+            {/* 6. Fresh Releases */}
+            <View style={styles.sectionBlock}>
+              <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Fresh Drops & Singles</Text>
-              </View>
-              {newReleases.slice(0, 5).map((song) => (
-                <SongCard key={song.id} song={song} playlist={newReleases} variant="list" />
-              ))}
-            </View>
-
-            {/* 7. Languages Carousel */}
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionHeaderRow}>
-                <View style={styles.sectionTitleRow}>
-                  <Ionicons name="globe" size={20} color="#10b981" />
-                  <Text style={styles.sectionTitle}>Music by Language</Text>
-                </View>
-                <TouchableOpacity onPress={() => router.push('/languages')}>
-                  <Text style={styles.seeAllText}>All languages</Text>
-                </TouchableOpacity>
               </View>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalScroll}
+                contentContainerStyle={styles.cardsRow}
               >
-                {LANGUAGES.map((lang) => (
-                  <LanguageCard key={lang.id} language={lang} variant="pill" />
+                {newReleases.map((song) => (
+                  <SongCard key={song.id} song={song} playlist={newReleases} variant="card" />
                 ))}
               </ScrollView>
             </View>
 
-            {/* 8. Chill Vibes */}
+            {/* 7. Chill & Lo-Fi Selection */}
             {chillOut.length > 0 && (
-              <View style={styles.verticalSection}>
-                <View style={styles.sectionHeaderRowNoPad}>
+              <View style={styles.sectionBlock}>
+                <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Chill & Lo-Fi Selection</Text>
                 </View>
-                {chillOut.slice(0, 4).map((song) => (
-                  <SongCard key={song.id} song={song} playlist={chillOut} variant="list" />
-                ))}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.cardsRow}
+                >
+                  {chillOut.map((song) => (
+                    <SongCard key={song.id} song={song} playlist={chillOut} variant="card" />
+                  ))}
+                </ScrollView>
               </View>
             )}
-          </>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -419,250 +413,210 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: APP_CONFIG.THEME.background
+    backgroundColor: '#121212'
   },
   scrollContent: {
     paddingBottom: 120
   },
-  topHeader: {
+  topStickyHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    backgroundColor: 'rgba(18, 18, 18, 0.95)',
+    zIndex: 10
   },
-  greetingText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: APP_CONFIG.THEME.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8
-  },
-  brandTitle: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: APP_CONFIG.THEME.textPrimary,
-    letterSpacing: -0.5
-  },
-  headerIcons: {
+  navHistoryArrows: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 8
   },
-  iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#131625',
+  arrowCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#20253b'
+    alignItems: 'center'
   },
-  tamilHeaderBtn: {
-    backgroundColor: APP_CONFIG.THEME.accentTamil,
-    borderColor: APP_CONFIG.THEME.accentTamil,
-    paddingHorizontal: 10,
-    width: 'auto',
+  topFilterPills: {
     flexDirection: 'row',
-    gap: 4
+    gap: 8,
+    flex: 1,
+    marginLeft: 16
   },
-  tamilBtnText: {
+  topPill: {
+    backgroundColor: '#232323',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
+    transition: 'background-color 0.15s ease'
+  } as any,
+  topPillActive: {
+    backgroundColor: '#ffffff'
+  },
+  tamilSpecialPill: {
+    backgroundColor: 'rgba(249, 115, 22, 0.15)'
+  },
+  topPillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#ffffff'
+  },
+  topPillTextActive: {
+    color: '#000000',
+    fontWeight: '700'
+  },
+  userAvatarBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#282828',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  ambientBackdrop: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 28
+  },
+  greetingHeading: {
+    fontSize: 32,
+    fontWeight: '800',
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '800'
-  },
-  quickAccessContainer: {
-    paddingHorizontal: 20,
+    letterSpacing: -0.5,
     marginBottom: 20
   },
   quickAccessGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10
+    gap: 12
   },
-  quickAccessCard: {
-    width: '48.5%',
+  quickAccessTile: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#131625',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#1f243a',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 6,
     overflow: 'hidden',
-    height: 52,
-    paddingRight: 10
+    paddingRight: 12,
+    transition: 'background-color 0.2s ease'
+  } as any,
+  quickAccessTileDesktop: {
+    width: 'calc(25% - 9px)' as any
   },
-  quickAccessIconBox: {
-    width: 52,
-    height: 52,
+  quickAccessTileTablet: {
+    width: 'calc(33.33% - 8px)' as any
+  },
+  quickAccessTileMobile: {
+    width: 'calc(50% - 6px)' as any
+  },
+  quickTileThumb: {
+    width: 56,
+    height: 56,
     justifyContent: 'center',
     alignItems: 'center'
   },
-  quickAccessTitle: {
+  quickTileTitle: {
     flex: 1,
     fontSize: 13,
     fontWeight: '700',
-    color: APP_CONFIG.THEME.textPrimary,
-    marginLeft: 10
+    color: '#ffffff',
+    marginLeft: 12
   },
-  quickPlayBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: APP_CONFIG.THEME.accentPrimary,
+  quickTilePlayBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1ed760',
     justifyContent: 'center',
     alignItems: 'center',
-    opacity: 0.9
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4
   },
-  heroCardContainer: {
-    marginHorizontal: 20,
-    height: 220,
-    borderRadius: 20,
+  sectionsContainer: {
+    paddingTop: 12
+  },
+  tamilHubBanner: {
+    marginHorizontal: 24,
+    borderRadius: 8,
     overflow: 'hidden',
-    position: 'relative',
-    marginBottom: 20,
-    backgroundColor: '#161928'
+    marginBottom: 28
   },
-  heroImage: {
-    width: '100%',
-    height: '100%'
-  },
-  heroGradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    top: 0,
-    justifyContent: 'flex-end',
-    padding: 20
-  },
-  featuredBadge: {
-    backgroundColor: 'rgba(99, 102, 241, 0.85)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    marginBottom: 6
-  },
-  featuredBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#ffffff',
-    letterSpacing: 1
-  },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#ffffff'
-  },
-  heroArtist: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 2,
-    marginBottom: 12
-  },
-  heroActions: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  heroPlayButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: APP_CONFIG.THEME.accentPrimary,
-    paddingHorizontal: 18,
-    paddingVertical: 9,
-    borderRadius: 24,
-    gap: 6
-  },
-  heroPlayText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 13
-  },
-  tamilSpotlightCard: {
-    marginHorizontal: 20,
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 20
-  },
-  tamilSpotlightGradient: {
+  tamilBannerGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 18
+    padding: 24
   },
-  tamilSpotlightContent: {
+  tamilBannerContent: {
     flex: 1,
-    marginRight: 12
+    marginRight: 16
   },
-  tamilPillBadge: {
+  tamilBadgePill: {
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     alignSelf: 'flex-start',
-    marginBottom: 6
+    marginBottom: 8
   },
-  tamilPillText: {
+  tamilBadgePillText: {
     color: '#ffffff',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.8
   },
-  tamilSpotlightTitle: {
-    fontSize: 17,
+  tamilBannerTitle: {
+    fontSize: 22,
     fontWeight: '800',
     color: '#ffffff'
   },
-  tamilSpotlightSubtitle: {
-    fontSize: 12,
+  tamilBannerSubtitle: {
+    fontSize: 13,
     color: 'rgba(255, 255, 255, 0.85)',
-    marginTop: 2
+    marginTop: 4,
+    lineHeight: 18
   },
-  tamilArrowCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+  tamilBannerPlayBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
     justifyContent: 'center',
     alignItems: 'center'
   },
-  sectionContainer: {
-    marginTop: 18
+  sectionBlock: {
+    marginBottom: 36
   },
-  sectionHeaderRow: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12
+    alignItems: 'baseline',
+    paddingHorizontal: 24,
+    marginBottom: 16
   },
-  sectionHeaderRowNoPad: {
-    marginBottom: 12
-  },
-  sectionTitleRow: {
+  sectionHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '700',
-    color: APP_CONFIG.THEME.textPrimary
+    color: '#ffffff',
+    letterSpacing: -0.3
   },
-  seeAllText: {
+  showAllText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: APP_CONFIG.THEME.accentPrimary
+    fontWeight: '700',
+    color: '#a7a7a7'
   },
-  horizontalScroll: {
-    paddingLeft: 20,
-    paddingRight: 8
-  },
-  verticalSection: {
-    paddingHorizontal: 20,
-    marginTop: 22
+  cardsRow: {
+    paddingLeft: 24,
+    paddingRight: 12
   }
 });

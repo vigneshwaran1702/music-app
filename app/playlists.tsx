@@ -11,12 +11,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { usePlaylists } from '../hooks/usePlaylists';
 import { usePlayer } from '../hooks/usePlayer';
 import { SongCard } from '../components/SongCard';
 import { Loading } from '../components/Loading';
 import { Playlist } from '../types/playlist';
-import { APP_CONFIG } from '../constants/config';
 
 export default function PlaylistsScreen() {
   const { playlists, loading, createPlaylist, deletePlaylist } = usePlaylists();
@@ -38,36 +38,56 @@ export default function PlaylistsScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Back button */}
           <TouchableOpacity style={styles.backBtn} onPress={() => setActivePlaylist(null)}>
-            <Ionicons name="arrow-back" size={24} color={APP_CONFIG.THEME.textPrimary} />
+            <Ionicons name="arrow-back" size={22} color="#ffffff" />
             <Text style={styles.backBtnText}>All Playlists</Text>
           </TouchableOpacity>
 
-          <View style={styles.plHeader}>
+          {/* Spotify Playlist Hero Header */}
+          <LinearGradient
+            colors={['#1e3a5f', '#121212']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.plHero}
+          >
             <Image source={{ uri: activePlaylist.coverUrl }} style={styles.plHeaderCover} />
-            <Text style={styles.plHeaderTitle}>{activePlaylist.title}</Text>
-            {activePlaylist.description ? (
-              <Text style={styles.plHeaderDesc}>{activePlaylist.description}</Text>
-            ) : null}
-            <Text style={styles.plHeaderMeta}>{activePlaylist.tracks.length} Songs</Text>
+            <View style={styles.plMetaCol}>
+              <Text style={styles.plTypeLabel}>PLAYLIST</Text>
+              <Text style={styles.plHeaderTitle}>{activePlaylist.title}</Text>
+              {activePlaylist.description ? (
+                <Text style={styles.plHeaderDesc}>{activePlaylist.description}</Text>
+              ) : null}
+              <Text style={styles.plHeaderMeta}>Created by You • {activePlaylist.tracks.length} songs</Text>
+            </View>
+          </LinearGradient>
 
-            {activePlaylist.tracks.length > 0 && (
+          {/* Action Bar */}
+          {activePlaylist.tracks.length > 0 && (
+            <View style={styles.plActionBar}>
               <TouchableOpacity
-                style={styles.playAllBtn}
+                style={styles.bigGreenPlayBtn}
                 onPress={() => playTrack(activePlaylist.tracks[0], activePlaylist.tracks)}
+                activeOpacity={0.85}
               >
-                <Ionicons name="play" size={18} color="#ffffff" />
-                <Text style={styles.playAllText}>Play Playlist</Text>
+                <Ionicons name="play" size={26} color="#000000" />
               </TouchableOpacity>
-            )}
-          </View>
+            </View>
+          )}
 
+          {/* Tracklist */}
           <View style={styles.tracksWrap}>
             {activePlaylist.tracks.length === 0 ? (
               <Text style={styles.noTracks}>No songs added to this playlist yet.</Text>
             ) : (
-              activePlaylist.tracks.map((s) => (
-                <SongCard key={s.id} song={s} playlist={activePlaylist.tracks} variant="list" />
+              activePlaylist.tracks.map((s, idx) => (
+                <SongCard
+                  key={s.id}
+                  song={s}
+                  playlist={activePlaylist.tracks}
+                  variant="list"
+                  index={idx}
+                />
               ))
             )}
           </View>
@@ -84,8 +104,12 @@ export default function PlaylistsScreen() {
             <Text style={styles.headerTitle}>Your Playlists</Text>
             <Text style={styles.headerSubtitle}>Create custom music mixes and playlists.</Text>
           </View>
-          <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
-            <Ionicons name="add" size={24} color="#ffffff" />
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={() => setModalVisible(true)}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="add" size={24} color="#000000" />
           </TouchableOpacity>
         </View>
 
@@ -93,7 +117,7 @@ export default function PlaylistsScreen() {
           <Loading message="Loading playlists..." />
         ) : playlists.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Ionicons name="musical-notes-outline" size={56} color={APP_CONFIG.THEME.textMuted} />
+            <Ionicons name="musical-notes-outline" size={56} color="#a7a7a7" />
             <Text style={styles.emptyTitle}>No Playlists Yet</Text>
             <Text style={styles.emptySub}>Tap the + button to create your first custom playlist.</Text>
           </View>
@@ -104,11 +128,12 @@ export default function PlaylistsScreen() {
                 key={pl.id}
                 style={styles.playlistCard}
                 onPress={() => setActivePlaylist(pl)}
+                activeOpacity={0.8}
               >
                 <Image source={{ uri: pl.coverUrl }} style={styles.cardCover} />
                 <View style={styles.cardInfo}>
                   <Text style={styles.cardTitle}>{pl.title}</Text>
-                  <Text style={styles.cardMeta}>{pl.tracks.length} Songs</Text>
+                  <Text style={styles.cardMeta}>Playlist • {pl.tracks.length} songs</Text>
                 </View>
                 <TouchableOpacity
                   style={styles.deleteBtn}
@@ -117,7 +142,7 @@ export default function PlaylistsScreen() {
                     deletePlaylist(pl.id);
                   }}
                 >
-                  <Ionicons name="trash-outline" size={20} color={APP_CONFIG.THEME.textMuted} />
+                  <Ionicons name="trash-outline" size={18} color="#a7a7a7" />
                 </TouchableOpacity>
               </TouchableOpacity>
             ))}
@@ -133,7 +158,7 @@ export default function PlaylistsScreen() {
             <TextInput
               style={styles.input}
               placeholder="Playlist name"
-              placeholderTextColor={APP_CONFIG.THEME.textMuted}
+              placeholderTextColor="#71717a"
               value={title}
               onChangeText={setTitle}
               autoFocus
@@ -141,7 +166,7 @@ export default function PlaylistsScreen() {
             <TextInput
               style={[styles.input, { height: 70 }]}
               placeholder="Description (optional)"
-              placeholderTextColor={APP_CONFIG.THEME.textMuted}
+              placeholderTextColor="#71717a"
               value={desc}
               onChangeText={setDesc}
               multiline
@@ -164,113 +189,199 @@ export default function PlaylistsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: APP_CONFIG.THEME.background
+    backgroundColor: '#121212'
   },
   content: {
-    padding: 20,
-    paddingBottom: 110
+    paddingBottom: 120
   },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 20,
     marginBottom: 20
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '800',
-    color: APP_CONFIG.THEME.textPrimary
+    color: '#ffffff',
+    letterSpacing: -0.5
   },
   headerSubtitle: {
     fontSize: 13,
-    color: APP_CONFIG.THEME.textSecondary,
+    color: '#a7a7a7',
     marginTop: 2
   },
   addBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: APP_CONFIG.THEME.accentPrimary,
+    backgroundColor: '#1ed760',
     justifyContent: 'center',
     alignItems: 'center'
   },
   emptyBox: {
     alignItems: 'center',
-    paddingVertical: 60
+    paddingVertical: 64,
+    paddingHorizontal: 24
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: APP_CONFIG.THEME.textPrimary,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#ffffff',
     marginTop: 14
   },
   emptySub: {
-    fontSize: 13,
-    color: APP_CONFIG.THEME.textMuted,
+    fontSize: 14,
+    color: '#a7a7a7',
     textAlign: 'center',
     marginTop: 6
   },
   list: {
-    gap: 12
+    paddingHorizontal: 24,
+    gap: 8
   },
   playlistCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: APP_CONFIG.THEME.cardBackground,
+    backgroundColor: '#181818',
     padding: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: APP_CONFIG.THEME.border
+    borderRadius: 8
   },
   cardCover: {
     width: 56,
     height: 56,
-    borderRadius: 12,
-    backgroundColor: '#1b1e30'
+    borderRadius: 6,
+    backgroundColor: '#282828'
   },
   cardInfo: {
     flex: 1,
     marginLeft: 14
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: APP_CONFIG.THEME.textPrimary
+    color: '#ffffff'
   },
   cardMeta: {
-    fontSize: 13,
-    color: APP_CONFIG.THEME.textMuted,
+    fontSize: 12,
+    color: '#a7a7a7',
     marginTop: 4
   },
   deleteBtn: {
     padding: 8
   },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 8
+  },
+  backBtnText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 14
+  },
+  plHero: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 24,
+    gap: 20
+  },
+  plHeaderCover: {
+    width: 160,
+    height: 160,
+    borderRadius: 6,
+    backgroundColor: '#282828',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12
+  },
+  plMetaCol: {
+    flex: 1,
+    justifyContent: 'flex-end'
+  },
+  plTypeLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: 0.8,
+    marginBottom: 4
+  },
+  plHeaderTitle: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: -0.5,
+    marginBottom: 6
+  },
+  plHeaderDesc: {
+    fontSize: 13,
+    color: '#a7a7a7',
+    marginBottom: 6
+  },
+  plHeaderMeta: {
+    fontSize: 13,
+    color: '#a7a7a7'
+  },
+  plActionBar: {
+    paddingHorizontal: 24,
+    paddingVertical: 16
+  },
+  bigGreenPlayBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#1ed760',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8
+  },
+  tracksWrap: {
+    paddingHorizontal: 24
+  },
+  noTracks: {
+    fontSize: 14,
+    color: '#a7a7a7',
+    textAlign: 'center',
+    marginTop: 32
+  },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
     justifyContent: 'center',
     padding: 24
   },
   modalCard: {
-    backgroundColor: '#151726',
-    borderRadius: 20,
+    backgroundColor: '#282828',
+    borderRadius: 12,
     padding: 24,
-    borderWidth: 1,
-    borderColor: '#292f4c'
+    maxWidth: 440,
+    alignSelf: 'center',
+    width: '100%'
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: APP_CONFIG.THEME.textPrimary,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#ffffff',
     marginBottom: 16
   },
   input: {
-    backgroundColor: '#1d2133',
-    borderRadius: 12,
+    backgroundColor: '#3e3e3e',
+    borderRadius: 6,
     padding: 12,
     color: '#ffffff',
-    marginBottom: 12,
-    fontSize: 15
+    marginBottom: 14,
+    fontSize: 14
   },
   modalActions: {
     flexDirection: 'row',
@@ -283,78 +394,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16
   },
   cancelText: {
-    color: APP_CONFIG.THEME.textSecondary,
-    fontWeight: '600'
-  },
-  createBtn: {
-    backgroundColor: APP_CONFIG.THEME.accentPrimary,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10
-  },
-  createText: {
     color: '#ffffff',
     fontWeight: '700'
   },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16
-  },
-  backBtnText: {
-    color: APP_CONFIG.THEME.textPrimary,
-    fontWeight: '600',
-    fontSize: 15,
-    marginLeft: 6
-  },
-  plHeader: {
-    alignItems: 'center',
-    marginBottom: 24
-  },
-  plHeaderCover: {
-    width: 140,
-    height: 140,
-    borderRadius: 16,
-    marginBottom: 12,
-    backgroundColor: '#1c1f30'
-  },
-  plHeaderTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: APP_CONFIG.THEME.textPrimary
-  },
-  plHeaderDesc: {
-    fontSize: 13,
-    color: APP_CONFIG.THEME.textSecondary,
-    marginTop: 4,
-    textAlign: 'center'
-  },
-  plHeaderMeta: {
-    fontSize: 12,
-    color: APP_CONFIG.THEME.textMuted,
-    marginTop: 4
-  },
-  playAllBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: APP_CONFIG.THEME.accentPrimary,
-    paddingHorizontal: 22,
+  createBtn: {
+    backgroundColor: '#1ed760',
     paddingVertical: 10,
-    borderRadius: 20,
-    marginTop: 14
+    paddingHorizontal: 22,
+    borderRadius: 20
   },
-  playAllText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    marginLeft: 6
-  },
-  tracksWrap: {
-    marginTop: 8
-  },
-  noTracks: {
-    fontSize: 14,
-    color: APP_CONFIG.THEME.textMuted,
-    textAlign: 'center',
-    marginTop: 20
+  createText: {
+    color: '#000000',
+    fontWeight: '700'
   }
 });

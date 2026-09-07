@@ -17,21 +17,23 @@ export const APP_CONFIG = {
     RECENT_SEARCHES: '@aura_music_recent_searches_v1'
   },
   THEME: {
-    background: '#090a10',
-    sidebarBg: '#0f111a',
-    cardBackground: '#131625',
-    cardBackgroundHover: '#1c2035',
-    cardBorder: '#1f243a',
-    playerBg: '#0e1019',
-    accentPrimary: '#6366f1',
+    background: '#000000',
+    islandBg: '#121212',
+    sidebarBg: '#121212',
+    cardBackground: '#181818',
+    cardBackgroundHover: '#242424',
+    cardBorder: 'transparent',
+    playerBg: '#000000',
+    accentPrimary: '#1ed760',
+    accentBrand: '#6366f1',
     accentSecondary: '#ec4899',
     accentCyan: '#06b6d4',
-    accentEmerald: '#10b981',
+    accentEmerald: '#1ed760',
     accentTamil: '#f97316',
     textPrimary: '#ffffff',
-    textSecondary: '#94a3b8',
-    textMuted: '#64748b',
-    border: '#1f243a',
-    activeBg: 'rgba(99, 102, 241, 0.14)'
+    textSecondary: '#a7a7a7',
+    textMuted: '#6a6a6a',
+    border: '#242424',
+    activeBg: '#282828'
   }
 };

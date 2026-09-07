@@ -5,12 +5,13 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Platform
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { APP_CONFIG } from '../constants/config';
 import { playlistsDb } from '../database/playlists';
+import { favoritesDb } from '../database/favorites';
 import { Playlist } from '../types/playlist';
 import { CreatePlaylistModal } from './CreatePlaylistModal';
 
@@ -18,22 +19,30 @@ interface SidebarProps {
   onNavigate?: () => void;
 }
 
+type LibraryFilter = 'all' | 'playlists' | 'artists';
+
 export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [likedCount, setLikedCount] = useState<number>(0);
+  const [filter, setFilter] = useState<LibraryFilter>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
-    loadPlaylists();
+    loadSidebarData();
   }, [pathname]);
 
-  const loadPlaylists = async () => {
+  const loadSidebarData = async () => {
     try {
-      const list = await playlistsDb.getPlaylists();
-      setPlaylists(list);
+      const [pls, favs] = await Promise.all([
+        playlistsDb.getPlaylists(),
+        favoritesDb.getFavorites()
+      ]);
+      setPlaylists(pls);
+      setLikedCount(favs.length);
     } catch (e) {
-      console.warn('Error loading sidebar playlists:', e);
+      console.warn('Error loading sidebar data:', e);
     }
   };
 
@@ -46,14 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
       iconOutline: 'flame-outline',
       route: '/tamil',
       badge: 'தமிழ்'
-    },
-    { label: 'Your Library', icon: 'library', iconOutline: 'library-outline', route: '/library' }
-  ];
-
-  const subNavItems = [
-    { label: 'Liked Songs', icon: 'heart', route: '/favorites', color: '#ec4899' },
-    { label: 'Downloads', icon: 'cloud-download', route: '/downloads', color: '#06b6d4' },
-    { label: 'All Playlists', icon: 'musical-notes', route: '/playlists', color: '#8b5cf6' }
+    }
   ];
 
   const handleNav = (route: string) => {
@@ -63,43 +65,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
 
   return (
     <View style={styles.container}>
-      {/* Brand Header */}
-      <TouchableOpacity
-        style={styles.brandRow}
-        activeOpacity={0.8}
-        onPress={() => handleNav('/')}
-      >
-        <View style={styles.brandLogo}>
-          <Ionicons name="disc" size={24} color="#ffffff" />
-        </View>
-        <View>
+      {/* Top Nav Block (Spotify style Island 1) */}
+      <View style={styles.topNavCard}>
+        <TouchableOpacity
+          style={styles.brandRow}
+          activeOpacity={0.8}
+          onPress={() => handleNav('/')}
+        >
+          <View style={styles.brandIconBox}>
+            <Ionicons name="disc" size={22} color="#ffffff" />
+          </View>
           <Text style={styles.brandName}>{APP_CONFIG.APP_NAME}</Text>
-          <Text style={styles.brandTagline}>Premium Streaming</Text>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
 
-      {/* Main Navigation */}
-      <View style={styles.section}>
         {navItems.map((item) => {
           const isActive = pathname === item.route;
           return (
             <TouchableOpacity
               key={item.route}
-              style={[styles.navItem, isActive && styles.navItemActive]}
+              style={styles.navRow}
               onPress={() => handleNav(item.route)}
               activeOpacity={0.7}
             >
               <Ionicons
                 name={(isActive ? item.icon : item.iconOutline) as any}
-                size={20}
-                color={isActive ? APP_CONFIG.THEME.accentPrimary : APP_CONFIG.THEME.textSecondary}
+                size={24}
+                color={isActive ? '#ffffff' : APP_CONFIG.THEME.textSecondary}
               />
-              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
+              <Text style={[styles.navText, isActive && styles.navTextActive]}>
                 {item.label}
               </Text>
               {item.badge && (
-                <View style={styles.tamilBadge}>
-                  <Text style={styles.tamilBadgeText}>{item.badge}</Text>
+                <View style={styles.badgePill}>
+                  <Text style={styles.badgeText}>{item.badge}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -107,79 +105,150 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
         })}
       </View>
 
-      <View style={styles.divider} />
+      {/* Library Block (Spotify style Island 2) */}
+      <View style={styles.libraryCard}>
+        {/* Library Header */}
+        <View style={styles.libraryHeader}>
+          <TouchableOpacity
+            style={styles.libraryTitleBtn}
+            onPress={() => handleNav('/library')}
+          >
+            <Ionicons
+              name="library"
+              size={22}
+              color={pathname === '/library' ? '#ffffff' : APP_CONFIG.THEME.textSecondary}
+            />
+            <Text style={[styles.libraryTitleText, pathname === '/library' && styles.navTextActive]}>
+              Your Library
+            </Text>
+          </TouchableOpacity>
 
-      {/* Library Quick Access */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>COLLECTIONS</Text>
-        {subNavItems.map((item) => {
-          const isActive = pathname === item.route;
-          return (
+          <View style={styles.libraryHeaderActions}>
             <TouchableOpacity
-              key={item.route}
-              style={[styles.subNavItem, isActive && styles.navItemActive]}
-              onPress={() => handleNav(item.route)}
-              activeOpacity={0.7}
+              style={styles.iconCircleBtn}
+              onPress={() => setShowCreateModal(true)}
             >
-              <View style={[styles.subIconSquare, { backgroundColor: item.color }]}>
-                <Ionicons name={item.icon as any} size={14} color="#ffffff" />
-              </View>
-              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
-                {item.label}
-              </Text>
+              <Ionicons name="add" size={20} color={APP_CONFIG.THEME.textSecondary} />
             </TouchableOpacity>
-          );
-        })}
-      </View>
+            <TouchableOpacity
+              style={styles.iconCircleBtn}
+              onPress={() => handleNav('/library')}
+            >
+              <Ionicons name="arrow-forward" size={18} color={APP_CONFIG.THEME.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
-      <View style={styles.divider} />
+        {/* Library Filter Pills */}
+        <View style={styles.libraryPillsRow}>
+          <TouchableOpacity
+            style={[styles.libPill, filter === 'playlists' && styles.libPillActive]}
+            onPress={() => setFilter(filter === 'playlists' ? 'all' : 'playlists')}
+          >
+            <Text style={[styles.libPillText, filter === 'playlists' && styles.libPillTextActive]}>
+              Playlists
+            </Text>
+          </TouchableOpacity>
 
-      {/* Custom Playlists Section */}
-      <View style={styles.playlistSectionHeader}>
-        <Text style={styles.sectionTitle}>YOUR PLAYLISTS</Text>
-        <TouchableOpacity
-          style={styles.createPlaylistIconBtn}
-          onPress={() => setShowCreateModal(true)}
-        >
-          <Ionicons name="add" size={18} color={APP_CONFIG.THEME.textPrimary} />
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={[styles.libPill, filter === 'artists' && styles.libPillActive]}
+            onPress={() => handleNav('/artists')}
+          >
+            <Text style={styles.libPillText}>Artists</Text>
+          </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.createPlaylistCard}
-        onPress={() => setShowCreateModal(true)}
-      >
-        <Ionicons name="add-circle" size={20} color={APP_CONFIG.THEME.accentPrimary} />
-        <Text style={styles.createPlaylistText}>New Playlist</Text>
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.libPill}
+            onPress={() => handleNav('/albums')}
+          >
+            <Text style={styles.libPillText}>Albums</Text>
+          </TouchableOpacity>
+        </View>
 
-      <ScrollView
-        style={styles.playlistScroll}
-        showsVerticalScrollIndicator={false}
-      >
-        {playlists.length === 0 ? (
-          <Text style={styles.emptyPlaylistText}>No playlists created yet.</Text>
-        ) : (
-          playlists.map((pl) => (
+        {/* Scrollable Library List */}
+        <ScrollView style={styles.libraryListScroll} showsVerticalScrollIndicator={false}>
+          {/* Liked Songs Pinned Item */}
+          <TouchableOpacity
+            style={[styles.playlistRowItem, pathname === '/favorites' && styles.playlistRowActive]}
+            onPress={() => handleNav('/favorites')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.likedGradientThumb}>
+              <Ionicons name="heart" size={18} color="#ffffff" />
+            </View>
+            <View style={styles.playlistMeta}>
+              <Text
+                numberOfLines={1}
+                style={[styles.playlistTitle, pathname === '/favorites' && styles.playlistTitleActive]}
+              >
+                Liked Songs
+              </Text>
+              <Text style={styles.playlistSubtitle}>
+                📌 Playlist • {likedCount} songs
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Downloads Pinned Item */}
+          <TouchableOpacity
+            style={[styles.playlistRowItem, pathname === '/downloads' && styles.playlistRowActive]}
+            onPress={() => handleNav('/downloads')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.downloadThumb}>
+              <Ionicons name="arrow-down" size={16} color="#1ed760" />
+            </View>
+            <View style={styles.playlistMeta}>
+              <Text
+                numberOfLines={1}
+                style={[styles.playlistTitle, pathname === '/downloads' && styles.playlistTitleActive]}
+              >
+                Downloaded
+              </Text>
+              <Text style={styles.playlistSubtitle}>Offline tracks</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* User Playlists */}
+          {playlists.map((pl) => (
             <TouchableOpacity
               key={pl.id}
-              style={styles.playlistItem}
-              onPress={() => handleNav(`/playlists`)}
+              style={styles.playlistRowItem}
+              onPress={() => handleNav('/playlists')}
+              activeOpacity={0.7}
             >
-              <Ionicons name="musical-note" size={14} color={APP_CONFIG.THEME.textMuted} />
-              <Text numberOfLines={1} style={styles.playlistItemText}>
-                {pl.title}
-              </Text>
+              <Image source={{ uri: pl.coverUrl }} style={styles.playlistCover} />
+              <View style={styles.playlistMeta}>
+                <Text numberOfLines={1} style={styles.playlistTitle}>
+                  {pl.title}
+                </Text>
+                <Text style={styles.playlistSubtitle}>
+                  Playlist • {pl.songCount || pl.tracks?.length || 0} songs
+                </Text>
+              </View>
             </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
+          ))}
+
+          {playlists.length === 0 && (
+            <TouchableOpacity
+              style={styles.createPromptBox}
+              onPress={() => setShowCreateModal(true)}
+            >
+              <Text style={styles.createPromptTitle}>Create your first playlist</Text>
+              <Text style={styles.createPromptSub}>It's easy, we'll help you</Text>
+              <View style={styles.createPromptPill}>
+                <Text style={styles.createPromptPillText}>Create playlist</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
+      </View>
 
       {/* Create Playlist Modal */}
       <CreatePlaylistModal
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onCreated={() => loadPlaylists()}
+        onCreated={() => loadSidebarData()}
       />
     </View>
   );
@@ -187,152 +256,208 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
 
 const styles = StyleSheet.create({
   container: {
-    width: 250,
-    backgroundColor: APP_CONFIG.THEME.sidebarBg,
-    borderRightWidth: 1,
-    borderRightColor: APP_CONFIG.THEME.border,
-    paddingVertical: 20,
-    paddingHorizontal: 14,
+    width: 280,
+    backgroundColor: '#000000',
+    padding: 8,
     height: '100%',
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    gap: 8
+  },
+  topNavCard: {
+    backgroundColor: '#121212',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    gap: 16
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    marginBottom: 24,
-    gap: 12
+    gap: 10,
+    marginBottom: 4
   },
-  brandLogo: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+  brandIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: APP_CONFIG.THEME.accentPrimary,
     justifyContent: 'center',
     alignItems: 'center'
   },
   brandName: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
-    color: APP_CONFIG.THEME.textPrimary,
-    letterSpacing: -0.3
+    color: '#ffffff',
+    letterSpacing: -0.2
   },
-  brandTagline: {
-    fontSize: 11,
-    color: APP_CONFIG.THEME.textMuted
-  },
-  section: {
-    marginBottom: 8
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: APP_CONFIG.THEME.textMuted,
-    paddingHorizontal: 12,
-    marginBottom: 8,
-    letterSpacing: 0.8
-  },
-  navItem: {
+  navRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    marginBottom: 4,
-    gap: 12
+    gap: 16,
+    paddingVertical: 4
   },
-  navItemActive: {
-    backgroundColor: APP_CONFIG.THEME.activeBg
-  },
-  navLabel: {
+  navText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: APP_CONFIG.THEME.textSecondary,
-    flex: 1
+    fontWeight: '700',
+    color: '#a7a7a7'
   },
-  navLabelActive: {
-    color: APP_CONFIG.THEME.textPrimary,
-    fontWeight: '700'
+  navTextActive: {
+    color: '#ffffff'
   },
-  tamilBadge: {
+  badgePill: {
     backgroundColor: APP_CONFIG.THEME.accentTamil,
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 6
+    borderRadius: 10,
+    marginLeft: 'auto'
   },
-  tamilBadgeText: {
+  badgeText: {
     color: '#ffffff',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800'
   },
-  subNavItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
+  libraryCard: {
+    flex: 1,
+    backgroundColor: '#121212',
+    borderRadius: 8,
     paddingHorizontal: 12,
-    borderRadius: 10,
-    marginBottom: 2,
-    gap: 12
+    paddingVertical: 14,
+    display: 'flex',
+    flexDirection: 'column'
   },
-  subIconSquare: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  divider: {
-    height: 1,
-    backgroundColor: APP_CONFIG.THEME.border,
-    marginVertical: 12,
-    marginHorizontal: 8
-  },
-  playlistSectionHeader: {
+  libraryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6
+    paddingHorizontal: 6,
+    marginBottom: 12
   },
-  createPlaylistIconBtn: {
-    padding: 4
-  },
-  createPlaylistCard: {
+  libraryTitleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: 'rgba(99, 102, 241, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+    gap: 12
+  },
+  libraryTitleText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#a7a7a7'
+  },
+  libraryHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  iconCircleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  libraryPillsRow: {
+    flexDirection: 'row',
     gap: 8,
-    marginBottom: 8
+    paddingHorizontal: 4,
+    marginBottom: 12
   },
-  createPlaylistText: {
-    fontSize: 13,
+  libPill: {
+    backgroundColor: '#232323',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16
+  },
+  libPillActive: {
+    backgroundColor: '#ffffff'
+  },
+  libPillText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: APP_CONFIG.THEME.accentPrimary
+    color: '#ffffff'
   },
-  playlistScroll: {
+  libPillTextActive: {
+    color: '#000000',
+    fontWeight: '700'
+  },
+  libraryListScroll: {
     flex: 1
   },
-  emptyPlaylistText: {
-    fontSize: 12,
-    color: APP_CONFIG.THEME.textMuted,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontStyle: 'italic'
-  },
-  playlistItem: {
+  playlistRowItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    gap: 10
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderRadius: 6,
+    gap: 12
   },
-  playlistItemText: {
-    fontSize: 13,
-    color: APP_CONFIG.THEME.textSecondary
+  playlistRowActive: {
+    backgroundColor: '#232323'
+  },
+  likedGradientThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 4,
+    backgroundColor: '#450af5',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  downloadThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 4,
+    backgroundColor: '#1e382b',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  playlistCover: {
+    width: 48,
+    height: 48,
+    borderRadius: 4,
+    backgroundColor: '#282828'
+  },
+  playlistMeta: {
+    flex: 1
+  },
+  playlistTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 3
+  },
+  playlistTitleActive: {
+    color: APP_CONFIG.THEME.accentPrimary
+  },
+  playlistSubtitle: {
+    fontSize: 12,
+    color: '#a7a7a7'
+  },
+  createPromptBox: {
+    backgroundColor: '#1f1f1f',
+    borderRadius: 8,
+    padding: 16,
+    marginVertical: 10,
+    gap: 6
+  },
+  createPromptTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff'
+  },
+  createPromptSub: {
+    fontSize: 12,
+    color: '#a7a7a7',
+    marginBottom: 8
+  },
+  createPromptPill: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'flex-start'
+  },
+  createPromptPillText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '700'
   }
 });
