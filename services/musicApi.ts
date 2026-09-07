@@ -69,18 +69,13 @@ export const musicApi = {
     const clean = query.trim();
 
     try {
-      const isTamil = clean.toLowerCase().includes('tamil');
-      const searchQuery = isTamil ? 'Top Tamil Hits Anirudh AR Rahman Leo Jailer' : clean;
-
       // Parallel search across JioSaavn, MusicBrainz recordings, and Jamendo
       const [saavnSongs, saavnArtists, saavnAlbums, mbRecordings, jamendoSongs] =
         await Promise.all([
-          jioSaavnApi.searchSongs(searchQuery, 30),
+          jioSaavnApi.searchSongs(clean, 30),
           jioSaavnApi.searchArtists(clean, 8),
           jioSaavnApi.searchAlbums(clean, 8),
-          isTamil
-            ? musicBrainzApi.getRecordingsByTag('tamil', 20)
-            : musicBrainzApi.searchRecordings(clean, 10),
+          musicBrainzApi.searchRecordings(clean, 10),
           jamendoApi.searchTracks(clean, 10)
         ]);
 
@@ -112,8 +107,21 @@ export const musicApi = {
       );
       const combinedAlbums = [...saavnAlbums, ...matchedCuratedAlbums];
 
+      const fallbackCurated = CURATED_FEATURED_SONGS.filter(
+        (s) =>
+          s.title.toLowerCase().includes(clean.toLowerCase()) ||
+          s.artistName.toLowerCase().includes(clean.toLowerCase()) ||
+          s.genre.toLowerCase().includes(clean.toLowerCase()) ||
+          (clean.toLowerCase().includes('tamil') && s.language === 'ta')
+      );
+
       return {
-        songs: deduplicatedSongs.length > 0 ? deduplicatedSongs : CURATED_FEATURED_SONGS,
+        songs:
+          deduplicatedSongs.length > 0
+            ? deduplicatedSongs
+            : fallbackCurated.length > 0
+            ? fallbackCurated
+            : CURATED_FEATURED_SONGS,
         artists: combinedArtists,
         albums: combinedAlbums
       };
@@ -164,8 +172,8 @@ export const musicApi = {
       };
 
       const languageKeywords: Record<string, string[]> = {
-        ta: ['Top Tamil Hits Anirudh AR Rahman', 'Trending Tamil Songs Anirudh', 'Kollywood Hits'],
-        tamil: ['Top Tamil Hits Anirudh AR Rahman', 'Trending Tamil Songs Anirudh', 'Kollywood Hits'],
+        ta: ['Top Tamil Hits Anirudh AR Rahman', 'Trending Tamil Songs 2024', 'Tamil Melody Hits', 'Kollywood Hits', 'Tamil Love Songs', 'Yuvan Shankar Raja Tamil'],
+        tamil: ['Top Tamil Hits Anirudh AR Rahman', 'Trending Tamil Songs 2024', 'Tamil Melody Hits', 'Kollywood Hits', 'Tamil Love Songs', 'Yuvan Shankar Raja Tamil'],
         hi: ['Latest Hindi Hits Arijit Shreya', 'Trending Bollywood Hits'],
         hindi: ['Latest Hindi Hits Arijit Shreya', 'Trending Bollywood Hits'],
         en: ['Top Billboard English Pop Hits', 'Global Top 50 English'],
