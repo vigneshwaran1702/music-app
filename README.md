@@ -1,3 +1,9 @@
+
+<img width="1907" height="975" alt="Screenshot 2026-09-07 135525" src="https://github.com/user-attachments/assets/b1785d8c-b654-408f-9654-1b9eae161578" />
+
+
+
+
 # Aura Music App 🎵
 
 A feature-rich, high-performance Music Streaming & Offline playback application built with **Expo**, **Expo Router**, **Expo AV**, and **TypeScript**.
