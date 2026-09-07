@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Platform } from 'react-native';
 import { PlayerProvider } from '../context/PlayerContext';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { BottomBarPlayer } from '../components/BottomBarPlayer';
@@ -18,21 +18,57 @@ function AppLayout() {
   const pathname = usePathname();
   const isFullScreenPlayer = pathname === '/player';
 
+  // Inject sleek dark Spotify scrollbar styles on Web
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const styleId = 'spotify-global-styles';
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.innerHTML = `
+          * {
+            box-sizing: border-box;
+          }
+          body {
+            background-color: #000000;
+            overflow: hidden;
+            user-select: none;
+          }
+          ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+          ::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+          }
+          ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    }
+  }, []);
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Main Body Row */}
+      {/* Main Body Row with Spotify floating islands */}
       <View style={styles.mainRow}>
         {/* Left Sidebar (Desktop & Tablet) */}
         {!isMobile && !isFullScreenPlayer && <Sidebar />}
 
-        {/* Center Content Router Canvas */}
-        <View style={styles.contentCanvas}>
+        {/* Center Content Router Canvas Island */}
+        <View style={[styles.contentCanvas, !isMobile && styles.desktopContentIsland]}>
           <Stack
             screenOptions={{
               headerStyle: {
-                backgroundColor: APP_CONFIG.THEME.background
+                backgroundColor: '#121212'
               },
               headerTintColor: APP_CONFIG.THEME.textPrimary,
               headerTitleStyle: {
@@ -41,7 +77,7 @@ function AppLayout() {
               },
               headerShadowVisible: false,
               contentStyle: {
-                backgroundColor: APP_CONFIG.THEME.background
+                backgroundColor: '#121212'
               }
             }}
           >
@@ -176,16 +212,24 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: APP_CONFIG.THEME.background
+    backgroundColor: '#000000'
   },
   mainRow: {
     flex: 1,
     flexDirection: 'row',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    backgroundColor: '#000000'
   },
   contentCanvas: {
     flex: 1,
     height: '100%',
-    backgroundColor: APP_CONFIG.THEME.background
+    backgroundColor: '#121212'
+  },
+  desktopContentIsland: {
+    borderRadius: 8,
+    marginVertical: 8,
+    marginRight: 8,
+    overflow: 'hidden',
+    backgroundColor: '#121212'
   }
 });

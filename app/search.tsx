@@ -12,24 +12,38 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SongCard } from '../components/SongCard';
 import { ArtistCard } from '../components/ArtistCard';
 import { AlbumCard } from '../components/AlbumCard';
 import { musicApi } from '../services/musicApi';
 import { historyDb } from '../database/history';
 import { usePlayer } from '../hooks/usePlayer';
-import { GENRES } from '../constants/genres';
+import { useResponsive } from '../hooks/useResponsive';
 import { Song } from '../types/music';
 import { Artist } from '../types/artist';
 import { Album } from '../types/album';
-import { APP_CONFIG } from '../constants/config';
 
 type FilterType = 'all' | 'songs' | 'artists' | 'albums';
+
+const SPOTIFY_BROWSE_CATEGORIES = [
+  { id: 'tamil', name: 'Tamil Hits', color: '#f97316', icon: 'flame', query: 'Tamil' },
+  { id: 'anirudh', name: 'Anirudh Mix', color: '#eab308', icon: 'flash', query: 'Anirudh' },
+  { id: 'rahman', name: 'A.R. Rahman', color: '#0284c7', icon: 'musical-notes', query: 'AR Rahman' },
+  { id: 'kollywood', name: 'Kollywood OST', color: '#b91c1c', icon: 'film', query: 'Kollywood' },
+  { id: 'pop', name: 'Pop & Viral', color: '#148a08', icon: 'trending-up', query: 'Pop' },
+  { id: 'hiphop', name: 'Hip-Hop / Rap', color: '#bc5900', icon: 'mic', query: 'Hip Hop' },
+  { id: 'chill', name: 'Chill & Relax', color: '#450af5', icon: 'cafe', query: 'Lo-Fi' },
+  { id: 'romance', name: 'Romantic Songs', color: '#e8115b', icon: 'heart', query: 'Romantic' },
+  { id: 'indie', name: 'Indie & Acoustic', color: '#503750', icon: 'headset', query: 'Indie' },
+  { id: 'workout', name: 'Workout & Energy', color: '#e13300', icon: 'barbell', query: 'Workout' },
+  { id: 'classical', name: 'Carnatic & Classic', color: '#8d67ab', icon: 'disc', query: 'Carnatic' },
+  { id: 'party', name: 'Dance & Party', color: '#1e3264', icon: 'sparkles', query: 'Party' }
+];
 
 export default function SearchScreen() {
   const router = useRouter();
   const { playTrack } = usePlayer();
+  const { isDesktop, isTablet } = useResponsive();
   const [query, setQuery] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [loading, setLoading] = useState(false);
@@ -103,27 +117,26 @@ export default function SearchScreen() {
   ];
 
   const topSong = results.songs[0];
-  const topArtist = results.artists[0];
   const hasResults =
     results.songs.length > 0 || results.artists.length > 0 || results.albums.length > 0;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Search Header */}
+      {/* Search Header Bar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={APP_CONFIG.THEME.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color="#ffffff" />
         </TouchableOpacity>
 
         <View style={styles.searchBarWrapper}>
-          <Ionicons name="search" size={20} color={APP_CONFIG.THEME.textMuted} style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color="#a7a7a7" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             value={query}
             onChangeText={handleQueryChange}
             onSubmitEditing={() => performSearch(query)}
-            placeholder="Search songs, artists, albums, or தமிழ்..."
-            placeholderTextColor={APP_CONFIG.THEME.textMuted}
+            placeholder="What do you want to play? (Songs, artists, தமிழ்...)"
+            placeholderTextColor="#71717a"
             autoFocus
             returnKeyType="search"
           />
@@ -135,7 +148,7 @@ export default function SearchScreen() {
                 setResults({ songs: [], artists: [], albums: [] });
               }}
             >
-              <Ionicons name="close-circle" size={18} color={APP_CONFIG.THEME.textMuted} />
+              <Ionicons name="close-circle" size={18} color="#a7a7a7" />
             </TouchableOpacity>
           )}
         </View>
@@ -160,10 +173,10 @@ export default function SearchScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {loading ? (
-          /* Shimmer / Skeleton Loader */
+          /* Skeleton Loader */
           <View style={styles.skeletonContainer}>
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="large" color={APP_CONFIG.THEME.accentPrimary} />
+              <ActivityIndicator size="large" color="#1ed760" />
               <Text style={styles.loadingText}>Searching streaming catalogs...</Text>
             </View>
             {[1, 2, 3, 4, 5].map((idx) => (
@@ -181,7 +194,7 @@ export default function SearchScreen() {
           <View style={styles.resultsContainer}>
             {!hasResults ? (
               <View style={styles.noResultsBox}>
-                <Ionicons name="search-outline" size={48} color={APP_CONFIG.THEME.textMuted} />
+                <Ionicons name="search-outline" size={48} color="#a7a7a7" />
                 <Text style={styles.noResultsTitle}>No results found for "{query}"</Text>
                 <Text style={styles.noResultsSubtitle}>
                   Check your spelling or try searching for another song, composer, or Tamil keyword.
@@ -189,40 +202,67 @@ export default function SearchScreen() {
               </View>
             ) : (
               <>
-                {/* Top Result Card (Spotify style) */}
-                {filterType === 'all' && topSong && (
-                  <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Top Result</Text>
-                    <TouchableOpacity
-                      style={styles.topResultCard}
-                      activeOpacity={0.85}
-                      onPress={() => playTrack(topSong, results.songs)}
-                    >
-                      <Image source={{ uri: topSong.coverUrl }} style={styles.topResultImg} />
-                      <Text numberOfLines={1} style={styles.topResultTitle}>
-                        {topSong.title}
-                      </Text>
-                      <View style={styles.topResultMetaRow}>
-                        <View style={styles.topResultBadge}>
-                          <Text style={styles.topResultBadgeText}>SONG</Text>
-                        </View>
-                        <Text numberOfLines={1} style={styles.topResultArtist}>
-                          {topSong.artistName}
-                        </Text>
+                {/* Spotify 2-Column Top Result + Songs Section on Desktop */}
+                {filterType === 'all' && (
+                  <View style={[styles.topResultRow, isDesktop && styles.topResultRowDesktop]}>
+                    {/* Top Result Card */}
+                    {topSong && (
+                      <View style={[styles.section, isDesktop ? styles.topResultLeftCol : { width: '100%' }]}>
+                        <Text style={styles.sectionTitle}>Top result</Text>
+                        <TouchableOpacity
+                          style={styles.topResultCard}
+                          activeOpacity={0.85}
+                          onPress={() => playTrack(topSong, results.songs)}
+                        >
+                          <Image source={{ uri: topSong.coverUrl }} style={styles.topResultImg} />
+                          <Text numberOfLines={1} style={styles.topResultTitle}>
+                            {topSong.title}
+                          </Text>
+                          <View style={styles.topResultMetaRow}>
+                            <View style={styles.topResultBadge}>
+                              <Text style={styles.topResultBadgeText}>SONG</Text>
+                            </View>
+                            <Text numberOfLines={1} style={styles.topResultArtist}>
+                              {topSong.artistName}
+                            </Text>
+                          </View>
+                          <View style={styles.topResultPlayCircle}>
+                            <Ionicons name="play" size={24} color="#000000" />
+                          </View>
+                        </TouchableOpacity>
                       </View>
-                      <View style={styles.topResultPlayCircle}>
-                        <Ionicons name="play" size={24} color="#ffffff" />
+                    )}
+
+                    {/* Top 4 Songs List beside Top Result */}
+                    {results.songs.length > 0 && (
+                      <View style={[styles.section, isDesktop ? styles.topResultRightCol : { width: '100%' }]}>
+                        <Text style={styles.sectionTitle}>Songs</Text>
+                        {results.songs.slice(0, 4).map((s, idx) => (
+                          <SongCard
+                            key={s.id}
+                            song={s}
+                            playlist={results.songs}
+                            variant="list"
+                            index={idx}
+                          />
+                        ))}
                       </View>
-                    </TouchableOpacity>
+                    )}
                   </View>
                 )}
 
-                {/* Songs Section */}
-                {(filterType === 'all' || filterType === 'songs') && results.songs.length > 0 && (
+                {/* Full Songs Section if filter = 'songs' */}
+                {filterType === 'songs' && results.songs.length > 0 && (
                   <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Songs ({results.songs.length})</Text>
-                    {results.songs.map((s) => (
-                      <SongCard key={s.id} song={s} playlist={results.songs} variant="list" />
+                    {results.songs.map((s, idx) => (
+                      <SongCard
+                        key={s.id}
+                        song={s}
+                        playlist={results.songs}
+                        variant="list"
+                        index={idx}
+                      />
                     ))}
                   </View>
                 )}
@@ -254,13 +294,13 @@ export default function SearchScreen() {
             )}
           </View>
         ) : (
-          /* Initial Discover View: Tamil Quick Suggestions & Recent Searches & Browse Genres */
+          /* Initial Discover View: Tamil Suggestions, Recent Searches & Spotify Browse Categories */
           <View style={styles.initialContainer}>
-            {/* Tamil Unicode & Trending Suggestions */}
+            {/* Tamil Trending Searches */}
             <View style={styles.suggestionSection}>
               <View style={styles.sectionHeaderRow}>
                 <View style={styles.titleWithIcon}>
-                  <Ionicons name="flame" size={18} color={APP_CONFIG.THEME.accentTamil} />
+                  <Ionicons name="flame" size={18} color="#ea580c" />
                   <Text style={styles.sectionTitle}>Trending Tamil Searches</Text>
                 </View>
               </View>
@@ -299,7 +339,7 @@ export default function SearchScreen() {
                         performSearch(term);
                       }}
                     >
-                      <Ionicons name="time-outline" size={14} color={APP_CONFIG.THEME.textMuted} />
+                      <Ionicons name="time-outline" size={14} color="#a7a7a7" />
                       <Text style={styles.recentChipText}>{term}</Text>
                     </TouchableOpacity>
                   ))}
@@ -307,21 +347,28 @@ export default function SearchScreen() {
               </View>
             )}
 
-            {/* Browse Categories / Genres */}
+            {/* Spotify Browse All Categories Grid */}
             <View style={styles.genreSection}>
-              <Text style={styles.sectionTitle}>Browse All Categories</Text>
+              <Text style={styles.browseSectionHeading}>Browse all</Text>
               <View style={styles.genreGrid}>
-                {GENRES.map((g) => (
+                {SPOTIFY_BROWSE_CATEGORIES.map((g) => (
                   <TouchableOpacity
                     key={g.id}
-                    style={[styles.genreCard, { borderColor: g.color }]}
+                    style={[
+                      styles.spotifyBrowseTile,
+                      { backgroundColor: g.color },
+                      isDesktop ? styles.browseTileDesktop : isTablet ? styles.browseTileTablet : styles.browseTileMobile
+                    ]}
+                    activeOpacity={0.85}
                     onPress={() => {
-                      setQuery(g.name);
-                      performSearch(g.name);
+                      setQuery(g.query);
+                      performSearch(g.query);
                     }}
                   >
-                    <Ionicons name={g.icon as any} size={24} color={g.color} />
-                    <Text style={styles.genreName}>{g.name}</Text>
+                    <Text style={styles.browseCategoryTitle}>{g.name}</Text>
+                    <View style={styles.browseCategoryIconBox}>
+                      <Ionicons name={g.icon as any} size={32} color="rgba(255, 255, 255, 0.4)" />
+                    </View>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -336,68 +383,67 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: APP_CONFIG.THEME.background
+    backgroundColor: '#121212'
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    backgroundColor: '#121212'
   },
   backButton: {
-    marginRight: 10,
+    marginRight: 12,
     padding: 6
   },
   searchBarWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#141727',
+    backgroundColor: '#242424',
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#22273e',
     paddingHorizontal: 14,
-    height: 44
-  },
+    height: 44,
+    maxWidth: 500,
+    transition: 'background-color 0.2s ease'
+  } as any,
   searchIcon: {
     marginRight: 8
   },
   searchInput: {
     flex: 1,
-    color: APP_CONFIG.THEME.textPrimary,
-    fontSize: 14
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500'
   },
   clearInputBtn: {
     padding: 4
   },
   filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingHorizontal: 24,
+    paddingBottom: 12,
     gap: 8
   },
   filterTab: {
     paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 18,
-    backgroundColor: '#141727',
-    borderWidth: 1,
-    borderColor: '#22273e'
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: '#242424'
   },
   filterTabActive: {
-    backgroundColor: APP_CONFIG.THEME.accentPrimary,
-    borderColor: APP_CONFIG.THEME.accentPrimary
+    backgroundColor: '#ffffff'
   },
   filterTabText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: APP_CONFIG.THEME.textSecondary
-  },
-  filterTabTextActive: {
+    fontWeight: '700',
     color: '#ffffff'
   },
+  filterTabTextActive: {
+    color: '#000000'
+  },
   scrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingBottom: 120
   },
   skeletonContainer: {
@@ -410,22 +456,22 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 13,
-    color: APP_CONFIG.THEME.textMuted
+    color: '#a7a7a7'
   },
   skeletonRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 14,
     padding: 10,
-    backgroundColor: '#131625',
-    borderRadius: 12,
+    backgroundColor: '#181818',
+    borderRadius: 8,
     gap: 12
   },
   skeletonCover: {
     width: 48,
     height: 48,
-    borderRadius: 8,
-    backgroundColor: '#1e2338'
+    borderRadius: 6,
+    backgroundColor: '#282828'
   },
   skeletonMeta: {
     flex: 1,
@@ -434,47 +480,62 @@ const styles = StyleSheet.create({
   skeletonLine1: {
     height: 14,
     width: '60%',
-    backgroundColor: '#1e2338',
+    backgroundColor: '#282828',
     borderRadius: 4
   },
   skeletonLine2: {
     height: 10,
     width: '40%',
-    backgroundColor: '#1a1e32',
+    backgroundColor: '#222222',
     borderRadius: 4
   },
   resultsContainer: {
     marginTop: 8
   },
-  section: {
+  topResultRow: {
+    flexDirection: 'column',
+    gap: 20,
     marginBottom: 24
   },
+  topResultRowDesktop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start'
+  },
+  topResultLeftCol: {
+    flex: 4
+  },
+  topResultRightCol: {
+    flex: 6
+  },
+  section: {
+    marginBottom: 28
+  },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 22,
     fontWeight: '700',
-    color: APP_CONFIG.THEME.textPrimary,
-    marginBottom: 12
+    color: '#ffffff',
+    marginBottom: 14,
+    letterSpacing: -0.3
   },
   topResultCard: {
-    backgroundColor: '#141727',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#22273e',
+    backgroundColor: '#181818',
+    borderRadius: 8,
     padding: 20,
     position: 'relative',
-    marginBottom: 16
-  },
+    transition: 'background-color 0.2s ease'
+  } as any,
   topResultImg: {
-    width: 90,
-    height: 90,
-    borderRadius: 12,
-    marginBottom: 14
+    width: 100,
+    height: 100,
+    borderRadius: 6,
+    marginBottom: 16,
+    backgroundColor: '#282828'
   },
   topResultTitle: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '800',
-    color: APP_CONFIG.THEME.textPrimary,
-    marginBottom: 4
+    color: '#ffffff',
+    marginBottom: 6
   },
   topResultMetaRow: {
     flexDirection: 'row',
@@ -482,19 +543,19 @@ const styles = StyleSheet.create({
     gap: 8
   },
   topResultBadge: {
-    backgroundColor: '#20253c',
+    backgroundColor: '#000000',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6
+    borderRadius: 12
   },
   topResultBadgeText: {
-    color: APP_CONFIG.THEME.textSecondary,
+    color: '#ffffff',
     fontSize: 10,
     fontWeight: '800'
   },
   topResultArtist: {
     fontSize: 14,
-    color: APP_CONFIG.THEME.textSecondary
+    color: '#a7a7a7'
   },
   topResultPlayCircle: {
     position: 'absolute',
@@ -503,10 +564,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: APP_CONFIG.THEME.accentPrimary,
+    backgroundColor: '#1ed760',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: APP_CONFIG.THEME.accentPrimary,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -518,14 +579,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20
   },
   noResultsTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    color: APP_CONFIG.THEME.textPrimary,
+    color: '#ffffff',
     marginTop: 12
   },
   noResultsSubtitle: {
     fontSize: 13,
-    color: APP_CONFIG.THEME.textSecondary,
+    color: '#a7a7a7',
     textAlign: 'center',
     marginTop: 6
   },
@@ -533,10 +594,10 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   suggestionSection: {
-    marginBottom: 20
+    marginBottom: 24
   },
   recentSection: {
-    marginBottom: 24
+    marginBottom: 28
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -550,9 +611,9 @@ const styles = StyleSheet.create({
     gap: 6
   },
   clearText: {
-    fontSize: 12,
-    color: APP_CONFIG.THEME.accentPrimary,
-    fontWeight: '600'
+    fontSize: 13,
+    color: '#1ed760',
+    fontWeight: '700'
   },
   chipsWrap: {
     flexDirection: 'row',
@@ -560,57 +621,72 @@ const styles = StyleSheet.create({
     gap: 8
   },
   tamilChip: {
-    backgroundColor: 'rgba(249, 115, 22, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(249, 115, 22, 0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 16
+    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20
   },
   tamilChipText: {
     fontSize: 13,
-    color: APP_CONFIG.THEME.accentTamil,
-    fontWeight: '600'
+    color: '#f97316',
+    fontWeight: '700'
   },
   recentChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#141727',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#22273e'
+    backgroundColor: '#242424',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20
   },
   recentChipText: {
     fontSize: 13,
-    color: APP_CONFIG.THEME.textSecondary,
+    color: '#ffffff',
     marginLeft: 6
   },
   genreSection: {
-    marginTop: 8
+    marginTop: 12
+  },
+  browseSectionHeading: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginBottom: 16,
+    letterSpacing: -0.3
   },
   genreGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between'
+    gap: 16
   },
-  genreCard: {
-    width: '48%',
-    height: 70,
-    backgroundColor: '#141727',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 10
+  spotifyBrowseTile: {
+    height: 120,
+    borderRadius: 8,
+    padding: 16,
+    position: 'relative',
+    overflow: 'hidden',
+    justifyContent: 'space-between',
+    transition: 'transform 0.2s ease'
+  } as any,
+  browseTileDesktop: {
+    width: 'calc(25% - 12px)' as any
   },
-  genreName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: APP_CONFIG.THEME.textPrimary,
-    flex: 1
+  browseTileTablet: {
+    width: 'calc(33.33% - 11px)' as any
+  },
+  browseTileMobile: {
+    width: 'calc(50% - 8px)' as any
+  },
+  browseCategoryTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: -0.2
+  },
+  browseCategoryIconBox: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
+    transform: [{ rotate: '25deg' }]
   }
 });

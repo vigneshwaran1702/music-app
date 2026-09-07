@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { artistApi } from '../../services/artistApi';
 import { Artist } from '../../types/artist';
 import { SongCard } from '../../components/SongCard';
 import { Loading } from '../../components/Loading';
 import { usePlayer } from '../../hooks/usePlayer';
-import { APP_CONFIG } from '../../constants/config';
 
 export default function ArtistDetailScreen() {
   const { artistId } = useLocalSearchParams<{ artistId: string }>();
@@ -49,56 +49,90 @@ export default function ArtistDetailScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Artist Hero Header */}
-        <View style={styles.heroBox}>
+        {/* Back navigation */}
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={22} color="#ffffff" />
+        </TouchableOpacity>
+
+        {/* Spotify Artist Hero Header */}
+        <LinearGradient
+          colors={['#27272a', '#18181b', '#121212']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.heroBox}
+        >
           <Image source={{ uri: artist.imageUrl }} style={styles.heroImage} />
-          <Text style={styles.heroName}>{artist.name}</Text>
-          {artist.monthlyListeners ? (
-            <Text style={styles.listenersText}>
-              {artist.monthlyListeners.toLocaleString()} Monthly Listeners
-            </Text>
-          ) : null}
 
-          {artist.genres && (
-            <View style={styles.genrePills}>
-              {artist.genres.map((g, i) => (
-                <View key={i} style={styles.genrePill}>
-                  <Text style={styles.genrePillText}>{g}</Text>
-                </View>
-              ))}
+          <View style={styles.heroMeta}>
+            <View style={styles.verifiedRow}>
+              <Ionicons name="checkmark-circle" size={18} color="#38bdf8" />
+              <Text style={styles.verifiedText}>Verified Artist</Text>
             </View>
-          )}
 
-          {artist.topTracks && artist.topTracks.length > 0 && (
-            <TouchableOpacity
-              style={styles.playButton}
-              onPress={() => playTrack(artist.topTracks![0], artist.topTracks)}
-            >
-              <Ionicons name="play" size={20} color="#ffffff" />
-              <Text style={styles.playButtonText}>Play Artist Radio</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+            <Text style={styles.heroName}>{artist.name}</Text>
 
-        {/* Bio */}
-        {artist.bio ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>About</Text>
-            <Text style={styles.bioText}>{artist.bio}</Text>
+            {artist.monthlyListeners ? (
+              <Text style={styles.listenersText}>
+                {artist.monthlyListeners.toLocaleString()} monthly listeners
+              </Text>
+            ) : null}
+
+            {artist.genres && (
+              <View style={styles.genrePills}>
+                {artist.genres.map((g, i) => (
+                  <View key={i} style={styles.genrePill}>
+                    <Text style={styles.genrePillText}>{g}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
-        ) : null}
+        </LinearGradient>
 
-        {/* Top Tracks */}
+        {/* Actions Bar */}
+        {artist.topTracks && artist.topTracks.length > 0 && (
+          <View style={styles.actionsBar}>
+            <TouchableOpacity
+              style={styles.bigGreenPlayBtn}
+              onPress={() => playTrack(artist.topTracks![0], artist.topTracks)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="play" size={26} color="#000000" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.followBtn} activeOpacity={0.8}>
+              <Text style={styles.followBtnText}>Follow</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Popular Songs */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Popular Songs</Text>
+          <Text style={styles.sectionTitle}>Popular</Text>
           {artist.topTracks && artist.topTracks.length > 0 ? (
-            artist.topTracks.map((s) => (
-              <SongCard key={s.id} song={s} playlist={artist.topTracks} variant="list" />
+            artist.topTracks.map((s, idx) => (
+              <SongCard
+                key={s.id}
+                song={s}
+                playlist={artist.topTracks}
+                variant="list"
+                index={idx}
+              />
             ))
           ) : (
             <Text style={styles.noSongsText}>No tracks listed yet.</Text>
           )}
         </View>
+
+        {/* About Bio */}
+        {artist.bio ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>About</Text>
+            <View style={styles.bioCard}>
+              <Text style={styles.bioText}>{artist.bio}</Text>
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -107,97 +141,132 @@ export default function ArtistDetailScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: APP_CONFIG.THEME.background
+    backgroundColor: '#121212'
   },
   content: {
-    padding: 20,
-    paddingBottom: 110
+    paddingBottom: 120
+  },
+  backBtn: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8
   },
   heroBox: {
-    alignItems: 'center',
-    marginBottom: 28
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 28,
+    gap: 24
   },
   heroImage: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    borderWidth: 3,
-    borderColor: APP_CONFIG.THEME.accentPrimary,
-    marginBottom: 14,
-    backgroundColor: '#1c1f30'
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    backgroundColor: '#282828',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14
+  },
+  heroMeta: {
+    flex: 1,
+    justifyContent: 'flex-end'
+  },
+  verifiedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6
+  },
+  verifiedText: {
+    fontSize: 13,
+    color: '#ffffff',
+    fontWeight: '600'
   },
   heroName: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: APP_CONFIG.THEME.textPrimary
+    fontSize: 44,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: -1,
+    marginBottom: 8
   },
   listenersText: {
-    fontSize: 13,
-    color: APP_CONFIG.THEME.textSecondary,
-    marginTop: 4
+    fontSize: 14,
+    color: '#a7a7a7',
+    marginBottom: 10
   },
   genrePills: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-    justifyContent: 'center'
+    gap: 6
   },
   genrePill: {
-    backgroundColor: '#1b1e30',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#292f4c'
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12
   },
   genrePillText: {
-    fontSize: 12,
-    color: APP_CONFIG.THEME.accentCyan,
+    fontSize: 11,
+    color: '#ffffff',
     fontWeight: '600'
   },
-  playButton: {
+  actionsBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: APP_CONFIG.THEME.accentPrimary,
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
-    marginTop: 18,
-    shadowColor: APP_CONFIG.THEME.accentPrimary,
+    paddingVertical: 18,
+    gap: 20
+  },
+  bigGreenPlayBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#1ed760',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6
+    shadowRadius: 8
   },
-  playButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
+  followBtn: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 20
+  },
+  followBtnText: {
     color: '#ffffff',
-    marginLeft: 8
+    fontSize: 13,
+    fontWeight: '700'
   },
   section: {
-    marginBottom: 24
+    paddingHorizontal: 24,
+    marginBottom: 28
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '700',
-    color: APP_CONFIG.THEME.textPrimary,
-    marginBottom: 12
+    color: '#ffffff',
+    marginBottom: 14,
+    letterSpacing: -0.3
+  },
+  bioCard: {
+    backgroundColor: '#181818',
+    borderRadius: 8,
+    padding: 20
   },
   bioText: {
     fontSize: 14,
     lineHeight: 22,
-    color: APP_CONFIG.THEME.textSecondary,
-    backgroundColor: APP_CONFIG.THEME.cardBackground,
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: APP_CONFIG.THEME.border
+    color: '#a7a7a7'
   },
   noSongsText: {
     fontSize: 14,
-    color: APP_CONFIG.THEME.textMuted
+    color: '#a7a7a7'
   },
   notFound: {
     flex: 1,
@@ -206,6 +275,6 @@ const styles = StyleSheet.create({
   },
   notFoundText: {
     fontSize: 16,
-    color: APP_CONFIG.THEME.textMuted
+    color: '#a7a7a7'
   }
 });

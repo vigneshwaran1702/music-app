@@ -67,7 +67,7 @@ export const BottomBarPlayer: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Left: Track Meta */}
+      {/* Left: Track Meta (Spotify style) */}
       <View style={styles.leftSection}>
         <TouchableOpacity
           style={styles.coverWrapper}
@@ -99,7 +99,7 @@ export const BottomBarPlayer: React.FC = () => {
         <FavoriteButton song={currentTrack} size={18} />
       </View>
 
-      {/* Center: Controls & Scrub Bar */}
+      {/* Center: Controls & Scrub Bar (Spotify style) */}
       <View style={styles.centerSection}>
         <View style={styles.controlsRow}>
           {/* Shuffle Toggle */}
@@ -107,20 +107,17 @@ export const BottomBarPlayer: React.FC = () => {
             <Ionicons
               name="shuffle"
               size={18}
-              color={
-                playbackMode === 'shuffle'
-                  ? APP_CONFIG.THEME.accentPrimary
-                  : APP_CONFIG.THEME.textMuted
-              }
+              color={playbackMode === 'shuffle' ? '#1ed760' : '#a7a7a7'}
             />
+            {playbackMode === 'shuffle' && <View style={styles.activeDot} />}
           </TouchableOpacity>
 
           {/* Previous */}
           <TouchableOpacity style={styles.ctrlBtn} onPress={previousTrack}>
-            <Ionicons name="play-skip-back" size={20} color={APP_CONFIG.THEME.textSecondary} />
+            <Ionicons name="play-skip-back" size={20} color="#b3b3b3" />
           </TouchableOpacity>
 
-          {/* Play/Pause */}
+          {/* Play/Pause Button (Spotify White Circle) */}
           <TouchableOpacity
             style={styles.playPauseBtn}
             onPress={togglePlayPause}
@@ -128,14 +125,14 @@ export const BottomBarPlayer: React.FC = () => {
           >
             <Ionicons
               name={isPlaying ? 'pause' : 'play'}
-              size={22}
-              color="#ffffff"
+              size={20}
+              color="#000000"
             />
           </TouchableOpacity>
 
           {/* Next */}
           <TouchableOpacity style={styles.ctrlBtn} onPress={nextTrack}>
-            <Ionicons name="play-skip-forward" size={20} color={APP_CONFIG.THEME.textSecondary} />
+            <Ionicons name="play-skip-forward" size={20} color="#b3b3b3" />
           </TouchableOpacity>
 
           {/* Repeat Toggle */}
@@ -143,12 +140,9 @@ export const BottomBarPlayer: React.FC = () => {
             <Ionicons
               name={playbackMode === 'repeat-one' ? 'repeat' : 'repeat-outline'}
               size={18}
-              color={
-                playbackMode.includes('repeat')
-                  ? APP_CONFIG.THEME.accentPrimary
-                  : APP_CONFIG.THEME.textMuted
-              }
+              color={playbackMode.includes('repeat') ? '#1ed760' : '#a7a7a7'}
             />
+            {playbackMode !== 'normal' && <View style={styles.activeDot} />}
             {playbackMode === 'repeat-one' && (
               <Text style={styles.repeatOneText}>1</Text>
             )}
@@ -176,39 +170,39 @@ export const BottomBarPlayer: React.FC = () => {
 
       {/* Right: Actions, Queue, Lyrics & Volume */}
       <View style={styles.rightSection}>
+        {/* Now Playing View */}
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={toggleRightPanel}
+        >
+          <Ionicons
+            name="play-circle-outline"
+            size={19}
+            color={isRightPanelOpen ? '#1ed760' : '#a7a7a7'}
+          />
+        </TouchableOpacity>
+
         {/* Lyrics */}
         <TouchableOpacity
-          style={[styles.actionBtn, isLyricsOpen && styles.actionBtnActive]}
+          style={styles.actionBtn}
           onPress={toggleLyrics}
         >
           <Ionicons
-            name="musical-notes-outline"
+            name="mic-outline"
             size={18}
-            color={isLyricsOpen ? APP_CONFIG.THEME.accentPrimary : APP_CONFIG.THEME.textSecondary}
+            color={isLyricsOpen ? '#1ed760' : '#a7a7a7'}
           />
         </TouchableOpacity>
 
         {/* Queue */}
         <TouchableOpacity
-          style={[styles.actionBtn, isQueueOpen && styles.actionBtnActive]}
+          style={styles.actionBtn}
           onPress={toggleQueue}
         >
           <Ionicons
             name="list"
-            size={18}
-            color={isQueueOpen ? APP_CONFIG.THEME.accentPrimary : APP_CONFIG.THEME.textSecondary}
-          />
-        </TouchableOpacity>
-
-        {/* Right Info Panel Toggle */}
-        <TouchableOpacity
-          style={[styles.actionBtn, isRightPanelOpen && styles.actionBtnActive]}
-          onPress={toggleRightPanel}
-        >
-          <Ionicons
-            name="newspaper-outline"
-            size={18}
-            color={isRightPanelOpen ? APP_CONFIG.THEME.accentPrimary : APP_CONFIG.THEME.textSecondary}
+            size={19}
+            color={isQueueOpen ? '#1ed760' : '#a7a7a7'}
           />
         </TouchableOpacity>
 
@@ -227,7 +221,7 @@ export const BottomBarPlayer: React.FC = () => {
                   : 'volume-high-outline'
               }
               size={18}
-              color={APP_CONFIG.THEME.textSecondary}
+              color="#a7a7a7"
             />
           </TouchableOpacity>
 
@@ -247,7 +241,7 @@ export const BottomBarPlayer: React.FC = () => {
           style={styles.actionBtn}
           onPress={() => router.push('/player')}
         >
-          <Ionicons name="expand-outline" size={18} color={APP_CONFIG.THEME.textSecondary} />
+          <Ionicons name="expand-outline" size={17} color="#a7a7a7" />
         </TouchableOpacity>
       </View>
     </View>
@@ -256,29 +250,29 @@ export const BottomBarPlayer: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    height: 84,
-    backgroundColor: APP_CONFIG.THEME.playerBg,
+    height: 76,
+    backgroundColor: '#000000',
     borderTopWidth: 1,
-    borderTopColor: APP_CONFIG.THEME.border,
+    borderTopColor: '#181818',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     zIndex: 1000
   },
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '28%',
-    maxWidth: 280,
+    width: '30%',
+    maxWidth: 320,
     gap: 12
   },
   coverWrapper: {
-    width: 52,
-    height: 52,
-    borderRadius: 8,
+    width: 56,
+    height: 56,
+    borderRadius: 4,
     overflow: 'hidden',
-    backgroundColor: '#181b2c'
+    backgroundColor: '#282828'
   },
   cover: {
     width: '100%',
@@ -289,42 +283,47 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 14,
-    fontWeight: '700',
-    color: APP_CONFIG.THEME.textPrimary,
+    fontWeight: '600',
+    color: '#ffffff',
     marginBottom: 2
   },
   artist: {
     fontSize: 12,
-    color: APP_CONFIG.THEME.textSecondary
+    color: '#a7a7a7'
   },
   centerSection: {
     flex: 1,
-    maxWidth: 640,
+    maxWidth: 722,
     alignItems: 'center',
     paddingHorizontal: 16
   },
   controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 18,
-    marginBottom: 6
+    gap: 16,
+    marginBottom: 4
   },
   ctrlBtn: {
     padding: 6,
     position: 'relative'
   },
+  activeDot: {
+    position: 'absolute',
+    bottom: 0,
+    left: '50%',
+    marginLeft: -2,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#1ed760'
+  },
   playPauseBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: APP_CONFIG.THEME.accentPrimary,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: APP_CONFIG.THEME.accentPrimary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 4
+    alignItems: 'center'
   },
   repeatOneText: {
     position: 'absolute',
@@ -332,34 +331,34 @@ const styles = StyleSheet.create({
     right: 3,
     fontSize: 9,
     fontWeight: '800',
-    color: APP_CONFIG.THEME.accentPrimary
+    color: '#1ed760'
   },
   scrubBarRow: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    gap: 10
+    gap: 8
   },
   timeText: {
     fontSize: 11,
-    color: APP_CONFIG.THEME.textMuted,
+    color: '#a7a7a7',
     width: 36,
     textAlign: 'center'
   },
   progressBarWrapper: {
     flex: 1,
-    height: 18,
+    height: 14,
     justifyContent: 'center'
   },
   progressBarBackground: {
     height: 4,
-    backgroundColor: '#20253b',
+    backgroundColor: '#4d4d4d',
     borderRadius: 2,
     position: 'relative'
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: APP_CONFIG.THEME.accentPrimary,
+    backgroundColor: '#ffffff',
     borderRadius: 2
   },
   scrubKnob: {
@@ -378,22 +377,18 @@ const styles = StyleSheet.create({
   rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '28%',
-    maxWidth: 280,
+    width: '30%',
+    maxWidth: 320,
     justifyContent: 'flex-end',
-    gap: 12
+    gap: 8
   },
   actionBtn: {
     padding: 6
   },
-  actionBtnActive: {
-    borderRadius: 6,
-    backgroundColor: 'rgba(99, 102, 241, 0.15)'
-  },
   volumeGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 110,
+    width: 100,
     gap: 6
   },
   volumeIconBtn: {
@@ -401,17 +396,17 @@ const styles = StyleSheet.create({
   },
   volumeBarWrapper: {
     flex: 1,
-    height: 18,
+    height: 14,
     justifyContent: 'center'
   },
   volumeBarBackground: {
     height: 4,
-    backgroundColor: '#20253b',
+    backgroundColor: '#4d4d4d',
     borderRadius: 2
   },
   volumeBarFill: {
     height: '100%',
-    backgroundColor: APP_CONFIG.THEME.textSecondary,
+    backgroundColor: '#ffffff',
     borderRadius: 2
   }
 });
