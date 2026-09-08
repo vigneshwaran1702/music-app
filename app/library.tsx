@@ -19,6 +19,7 @@ import { Playlist } from '../types/playlist';
 import { Song } from '../types/music';
 import { SongCard } from '../components/SongCard';
 import { CreatePlaylistModal } from '../components/CreatePlaylistModal';
+import { SpotifyImportModal } from '../components/SpotifyImportModal';
 import { usePlayer } from '../hooks/usePlayer';
 import { useResponsive } from '../hooks/useResponsive';
 
@@ -31,6 +32,7 @@ export default function LibraryScreen() {
   const [activeTab, setActiveTab] = useState<LibraryTab>('playlists');
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showSpotifyModal, setShowSpotifyModal] = useState(false);
 
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [likedSongs, setLikedSongs] = useState<Song[]>([]);
@@ -87,14 +89,25 @@ export default function LibraryScreen() {
             <Text style={styles.headerTitle}>Your Library</Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.createBtn}
-            onPress={() => setShowCreateModal(true)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add" size={20} color="#000000" />
-            <Text style={styles.createBtnText}>New Playlist</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={[styles.createBtn, { backgroundColor: '#1db954' }]}
+              onPress={() => setShowSpotifyModal(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="musical-notes" size={18} color="#000000" />
+              <Text style={styles.createBtnText}>Spotify Connect</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.createBtn}
+              onPress={() => setShowCreateModal(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add" size={20} color="#000000" />
+              <Text style={styles.createBtnText}>New Playlist</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Tab Filter Pills */}
@@ -282,6 +295,13 @@ export default function LibraryScreen() {
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreated={() => loadLibraryData()}
+      />
+
+      {/* Spotify Import Modal */}
+      <SpotifyImportModal
+        visible={showSpotifyModal}
+        onClose={() => setShowSpotifyModal(false)}
+        onImportComplete={() => loadLibraryData()}
       />
     </SafeAreaView>
   );
