@@ -1,5 +1,5 @@
 import { jioSaavnApi } from '../api/jiosaavn';
-import { jamendoApi } from '../api/jamendo';
+import { itunesApi } from '../api/itunes';
 import { musicBrainzApi } from '../api/musicbrainz';
 import { CURATED_FEATURED_SONGS, CURATED_ALBUMS, CURATED_ARTISTS } from '../api/sources';
 import { Song } from '../types/music';
@@ -14,45 +14,61 @@ export const musicApi = {
     chillOut: Song[];
   }> {
     try {
-      // Fetch live tracks across Tamil, Hindi, English, Punjabi & Global hits
-      const [saavnTrending, saavnTamil, saavnNew, jamendoTracks] = await Promise.all([
-        jioSaavnApi.searchSongs('Top Trending Songs', 15),
-        jioSaavnApi.searchSongs('Top Tamil Hits Anirudh AR Rahman', 15),
-        jioSaavnApi.searchSongs('New Hits 2024', 15),
-        jamendoApi.getTrendingTracks(8)
+      // Parallel fetch across top categories
+      const [saavnTrending, saavnTamil, saavnNew, saavnBollywood, saavnChill, itunesTrending] =
+        await Promise.all([
+          jioSaavnApi.getTrendingSongs(30),
+          jioSaavnApi.searchSongs('Top Tamil Hits Anirudh AR Rahman 2024', 25),
+          jioSaavnApi.searchSongs('Latest Indian and Global Hits 2024', 25),
+          jioSaavnApi.searchSongs('Top Bollywood Trending Hits Arijit Singh', 20),
+          jioSaavnApi.searchSongs('Lo-Fi Chill Acoustic Melodies Instrumental', 20),
+          itunesApi.searchSongs('Top Hits', 15)
+        ]);
+
+      const dedupe = (list: Song[]): Song[] => {
+        const seen = new Set<string>();
+        return list.filter((s) => {
+          if (!s.audioUrl || seen.has(s.id)) return false;
+          seen.add(s.id);
+          return true;
+        });
+      };
+
+      const allTrending = dedupe([
+        ...saavnTrending,
+        ...saavnTamil,
+        ...saavnBollywood,
+        ...itunesTrending
       ]);
 
-      const primaryTracks = [
-        ...saavnTrending.slice(0, 6),
-        ...saavnTamil.slice(0, 6),
-        ...jamendoTracks.slice(0, 4)
-      ];
-
-      const combined = primaryTracks.length > 0 ? primaryTracks : CURATED_FEATURED_SONGS;
-      const newDrops = saavnNew.length > 0 ? saavnNew : combined.slice(4, 12);
-
-      const chillTracks = [
-        ...combined.filter((s) =>
-          ['Lo-Fi / Chill', 'Electronic', 'Ambient', 'Acoustic', 'Chill', 'Piano', 'Melody'].some((g) =>
-            (s.genre || '').includes(g)
+      const featured = allTrending.slice(0, 12);
+      const trending = allTrending.length > 0 ? allTrending : CURATED_FEATURED_SONGS;
+      const newDrops = dedupe([...saavnNew, ...saavnTamil.slice(6)]);
+      const chillTracks = dedupe([
+        ...saavnChill,
+        ...trending.filter((s) =>
+          ['Lo-Fi', 'Chill', 'Acoustic', 'Melody', 'Ambient', 'Piano'].some((g) =>
+            (s.genre || '').includes(g) || (s.title || '').includes(g)
           )
         ),
-        ...CURATED_FEATURED_SONGS.filter((s) => s.language === 'ja' || s.genre.includes('Chill'))
-      ];
+        ...CURATED_FEATURED_SONGS.filter((s) => s.genre.includes('Chill') || s.language === 'ja')
+      ]);
 
       return {
-        featured: combined.slice(0, 6),
-        trending: combined,
-        newReleases: newDrops.length > 0 ? newDrops : combined.slice(2, 10),
-        chillOut: chillTracks.slice(0, 6)
+        featured: featured.length > 0 ? featured : CURATED_FEATURED_SONGS.slice(0, 6),
+        trending: trending.length > 0 ? trending : CURATED_FEATURED_SONGS,
+        newReleases: newDrops.length > 0 ? newDrops : trending.slice(2, 16),
+        chillOut: chillTracks.length > 0 ? chillTracks : CURATED_FEATURED_SONGS
       };
     } catch (error) {
       console.warn('[MusicApi] Feed fetch error, fallback to curated:', error);
       return {
-        featured: CURATED_FEATURED_SONGS.slice(0, 3),
+        featured: CURATED_FEATURED_SONGS.slice(0, 6),
         trending: CURATED_FEATURED_SONGS,
         newReleases: CURATED_FEATURED_SONGS.slice(2, 6),
-        chillOut: CURATED_FEATURED_SONGS.filter((s) => s.language === 'ja' || s.genre.includes('Chill'))
+        chillOut: CURATED_FEATURED_SONGS.filter(
+          (s) => s.language === 'ja' || s.genre.includes('Chill')
+        )
       };
     }
   },
@@ -69,24 +85,32 @@ export const musicApi = {
     const clean = query.trim();
 
     try {
-      // Parallel search across JioSaavn, MusicBrainz recordings, and Jamendo
-      const [saavnSongs, saavnArtists, saavnAlbums, mbRecordings, jamendoSongs] =
+      // Parallel search across JioSaavn, iTunes, and MusicBrainz
+      const [saavnSongs, saavnArtists, saavnAlbums, itunesSongs, itunesArtists, itunesAlbums, mbRecordings] =
         await Promise.all([
-          jioSaavnApi.searchSongs(clean, 30),
-          jioSaavnApi.searchArtists(clean, 8),
-          jioSaavnApi.searchAlbums(clean, 8),
-          musicBrainzApi.searchRecordings(clean, 10),
-          jamendoApi.searchTracks(clean, 10)
+          jioSaavnApi.searchSongs(clean, 50, 1),
+          jioSaavnApi.searchArtists(clean, 15),
+          jioSaavnApi.searchAlbums(clean, 15),
+          itunesApi.searchSongs(clean, 30),
+          itunesApi.searchArtists(clean, 10),
+          itunesApi.searchAlbums(clean, 10),
+          musicBrainzApi.searchRecordings(clean, 10)
         ]);
 
-      // Combine and deduplicate songs
-      const allSongs = [...saavnSongs, ...jamendoSongs];
+      // Combine and deduplicate songs (prioritize JioSaavn for full length, then iTunes)
+      const allSongs = [...saavnSongs, ...itunesSongs];
       const seenIds = new Set<string>();
+      const seenTitles = new Set<string>();
       const deduplicatedSongs: Song[] = [];
 
       for (const song of allSongs) {
-        if (!seenIds.has(song.id) && song.audioUrl) {
+        const normalizedTitle = `${song.title.toLowerCase()}_${song.artistName.toLowerCase()}`.replace(
+          /[^a-z0-9]/g,
+          ''
+        );
+        if (!seenIds.has(song.id) && !seenTitles.has(normalizedTitle) && song.audioUrl) {
           seenIds.add(song.id);
+          seenTitles.add(normalizedTitle);
           deduplicatedSongs.push(song);
         }
       }
@@ -97,7 +121,14 @@ export const musicApi = {
           a.name.toLowerCase().includes(clean.toLowerCase()) ||
           a.genres.some((g) => g.toLowerCase().includes(clean.toLowerCase()))
       );
-      const combinedArtists = [...saavnArtists, ...matchedCuratedArtists];
+      const combinedArtists = [...saavnArtists, ...itunesArtists, ...matchedCuratedArtists];
+      const artistMap = new Map<string, Artist>();
+      for (const a of combinedArtists) {
+        const key = a.name.toLowerCase().trim();
+        if (!artistMap.has(key)) {
+          artistMap.set(key, a);
+        }
+      }
 
       // Merge albums
       const matchedCuratedAlbums = CURATED_ALBUMS.filter(
@@ -105,7 +136,14 @@ export const musicApi = {
           al.title.toLowerCase().includes(clean.toLowerCase()) ||
           al.artistName.toLowerCase().includes(clean.toLowerCase())
       );
-      const combinedAlbums = [...saavnAlbums, ...matchedCuratedAlbums];
+      const combinedAlbums = [...saavnAlbums, ...itunesAlbums, ...matchedCuratedAlbums];
+      const albumMap = new Map<string, Album>();
+      for (const al of combinedAlbums) {
+        const key = al.title.toLowerCase().trim();
+        if (!albumMap.has(key)) {
+          albumMap.set(key, al);
+        }
+      }
 
       const fallbackCurated = CURATED_FEATURED_SONGS.filter(
         (s) =>
@@ -122,8 +160,8 @@ export const musicApi = {
             : fallbackCurated.length > 0
             ? fallbackCurated
             : CURATED_FEATURED_SONGS,
-        artists: combinedArtists,
-        albums: combinedAlbums
+        artists: Array.from(artistMap.values()),
+        albums: Array.from(albumMap.values())
       };
     } catch (error) {
       console.warn('[MusicApi] searchAll error:', error);
@@ -135,131 +173,86 @@ export const musicApi = {
     }
   },
 
-  async getSongsByLanguage(langCode: string): Promise<Song[]> {
+  async getSongsByLanguage(langCode: string, limit = 50): Promise<Song[]> {
     try {
       const code = langCode.toLowerCase();
 
-      // Language tag mapping for MusicBrainz: query=tag:<language>&fmt=json&limit=100
-      const tagMapping: Record<string, string> = {
-        ta: 'tamil',
-        tamil: 'tamil',
-        hi: 'hindi',
-        hindi: 'hindi',
-        te: 'telugu',
-        telugu: 'telugu',
-        ml: 'malayalam',
-        malayalam: 'malayalam',
-        kn: 'kannada',
-        kannada: 'kannada',
-        bn: 'bengali',
-        bengali: 'bengali',
-        mr: 'marathi',
-        marathi: 'marathi',
-        gu: 'gujarati',
-        gujarati: 'gujarati',
-        pa: 'punjabi',
-        punjabi: 'punjabi',
-        es: 'spanish',
-        spanish: 'spanish',
-        fr: 'french',
-        french: 'french',
-        de: 'german',
-        german: 'german',
-        ja: 'japanese',
-        japanese: 'japanese',
-        ko: 'korean',
-        korean: 'korean'
+      const languageQueries: Record<string, string[]> = {
+        ta: [
+          'Top Tamil Hits Anirudh AR Rahman',
+          'Trending Tamil Songs 2024',
+          'Tamil Melody Hits',
+          'Kollywood Blockbuster Hits',
+          'Tamil Love Songs Yuvan Harris'
+        ],
+        tamil: [
+          'Top Tamil Hits Anirudh AR Rahman',
+          'Trending Tamil Songs 2024',
+          'Tamil Melody Hits',
+          'Kollywood Blockbuster Hits',
+          'Tamil Love Songs Yuvan Harris'
+        ],
+        hi: [
+          'Latest Hindi Hits Arijit Singh Shreya',
+          'Trending Bollywood Hits 2024',
+          'Hindi Romantic Melodies',
+          'Bollywood Party Songs'
+        ],
+        hindi: [
+          'Latest Hindi Hits Arijit Singh Shreya',
+          'Trending Bollywood Hits 2024',
+          'Hindi Romantic Melodies',
+          'Bollywood Party Songs'
+        ],
+        en: ['Top Billboard Pop Hits 2024', 'Global Top 50 English Hits', 'Trending Pop Songs'],
+        english: ['Top Billboard Pop Hits 2024', 'Global Top 50 English Hits', 'Trending Pop Songs'],
+        te: ['Top Telugu Hits DSP Thaman Sid Sriram', 'Tollywood Blockbusters 2024', 'Telugu Melody Songs'],
+        telugu: ['Top Telugu Hits DSP Thaman Sid Sriram', 'Tollywood Blockbusters 2024', 'Telugu Melody Songs'],
+        pa: ['Top Punjabi Hits Diljit Dosanjh Karan Aujla', 'Punjabi Party Songs 2024', 'Sidhu Moose Wala Hits'],
+        punjabi: ['Top Punjabi Hits Diljit Dosanjh Karan Aujla', 'Punjabi Party Songs 2024', 'Sidhu Moose Wala Hits'],
+        ml: ['Top Malayalam Hits Sushin Shyam', 'Mollywood Melodies 2024', 'Malayalam Love Songs'],
+        malayalam: ['Top Malayalam Hits Sushin Shyam', 'Mollywood Melodies 2024', 'Malayalam Love Songs'],
+        kn: ['Top Kannada Hits Ravi Basrur', 'Sandalwood Hits 2024', 'Kannada Melodies'],
+        kannada: ['Top Kannada Hits Ravi Basrur', 'Sandalwood Hits 2024', 'Kannada Melodies'],
+        bn: ['Top Bengali Hits Arijit Singh', 'Bangla Hits 2024', 'Bengali Folk Melodies'],
+        bengali: ['Top Bengali Hits Arijit Singh', 'Bangla Hits 2024', 'Bengali Folk Melodies'],
+        mr: ['Top Marathi Hits Ajay Atul', 'Marathi Melodies 2024', 'Marathi Folk Songs'],
+        marathi: ['Top Marathi Hits Ajay Atul', 'Marathi Melodies 2024', 'Marathi Folk Songs'],
+        gu: ['Top Gujarati Hits Garba Sugam', 'Gujarati Folk Hits 2024'],
+        gujarati: ['Top Gujarati Hits Garba Sugam', 'Gujarati Folk Hits 2024'],
+        es: ['Top Latin Pop Reggaeton Hits', 'Spanish Hits 2024', 'Bad Bunny Rosalía'],
+        spanish: ['Top Latin Pop Reggaeton Hits', 'Spanish Hits 2024', 'Bad Bunny Rosalía'],
+        fr: ['Top French Pop Hits', 'Chanson Francaise 2024', 'Indila Stromae'],
+        french: ['Top French Pop Hits', 'Chanson Francaise 2024', 'Indila Stromae'],
+        de: ['German Techno Hits', 'Deutsch Pop 2024'],
+        german: ['German Techno Hits', 'Deutsch Pop 2024'],
+        ja: ['Japanese Anime OST Lo-Fi City Pop', 'J-Pop Top Hits 2024', 'Yoasobi Ado'],
+        japanese: ['Japanese Anime OST Lo-Fi City Pop', 'J-Pop Top Hits 2024', 'Yoasobi Ado'],
+        ko: ['Top K-Pop Korean Hits BTS Blackpink NewJeans', 'K-Indie Chill Melodies'],
+        korean: ['Top K-Pop Korean Hits BTS Blackpink NewJeans', 'K-Indie Chill Melodies']
       };
 
-      const languageKeywords: Record<string, string[]> = {
-        ta: ['Top Tamil Hits Anirudh AR Rahman', 'Trending Tamil Songs 2024', 'Tamil Melody Hits', 'Kollywood Hits', 'Tamil Love Songs', 'Yuvan Shankar Raja Tamil'],
-        tamil: ['Top Tamil Hits Anirudh AR Rahman', 'Trending Tamil Songs 2024', 'Tamil Melody Hits', 'Kollywood Hits', 'Tamil Love Songs', 'Yuvan Shankar Raja Tamil'],
-        hi: ['Latest Hindi Hits Arijit Shreya', 'Trending Bollywood Hits'],
-        hindi: ['Latest Hindi Hits Arijit Shreya', 'Trending Bollywood Hits'],
-        en: ['Top Billboard English Pop Hits', 'Global Top 50 English'],
-        english: ['Top Billboard English Pop Hits', 'Global Top 50 English'],
-        te: ['Top Telugu Hits DSP Thaman Sid Sriram', 'Tollywood Blockbusters'],
-        telugu: ['Top Telugu Hits DSP Thaman Sid Sriram', 'Tollywood Blockbusters'],
-        pa: ['Top Punjabi Hits Diljit Sidhu AP Dhillon', 'Punjabi Party Hits'],
-        punjabi: ['Top Punjabi Hits Diljit Sidhu AP Dhillon', 'Punjabi Party Hits'],
-        ml: ['Top Malayalam Hits Sushin Shyam', 'Mollywood Melodies'],
-        malayalam: ['Top Malayalam Hits Sushin Shyam', 'Mollywood Melodies'],
-        kn: ['Top Kannada Hits Ravi Basrur', 'Sandalwood Hits'],
-        kannada: ['Top Kannada Hits Ravi Basrur', 'Sandalwood Hits'],
-        bn: ['Top Bengali Hits Arijit Singh', 'Bangla Hits'],
-        bengali: ['Top Bengali Hits Arijit Singh', 'Bangla Hits'],
-        mr: ['Top Marathi Hits Ajay Atul', 'Marathi Melodies'],
-        marathi: ['Top Marathi Hits Ajay Atul', 'Marathi Melodies'],
-        gu: ['Top Gujarati Hits Garba Sugam', 'Gujarati Folk Hits'],
-        gujarati: ['Top Gujarati Hits Garba Sugam', 'Gujarati Folk Hits'],
-        es: ['Top Latin Pop Reggaeton Hits', 'Spanish Hits'],
-        spanish: ['Top Latin Pop Reggaeton Hits', 'Spanish Hits'],
-        fr: ['Top French Pop Hits', 'Chanson Francaise'],
-        french: ['Top French Pop Hits', 'Chanson Francaise'],
-        de: ['German Techno Hits', 'Deutsch Pop'],
-        german: ['German Techno Hits', 'Deutsch Pop'],
-        ja: ['Japanese Anime OST Lo-Fi City Pop', 'J-Pop Top Hits'],
-        japanese: ['Japanese Anime OST Lo-Fi City Pop', 'J-Pop Top Hits'],
-        ko: ['Top K-Pop Korean Hits BTS Blackpink', 'K-Indie Chill'],
-        korean: ['Top K-Pop Korean Hits BTS Blackpink', 'K-Indie Chill']
-      };
+      const queries = languageQueries[code] || [`${code} songs hits`];
 
-      const mbTag = tagMapping[code] || code;
-      const saavnQueries = languageKeywords[code] || [`${code} hits`];
+      // Fetch from JioSaavn & iTunes in parallel
+      const isWestern = ['en', 'english', 'es', 'spanish', 'fr', 'french', 'de', 'german', 'ja', 'japanese', 'ko', 'korean'].includes(code);
+      const fetchPromises: Promise<Song[]>[] = queries.map((q) => jioSaavnApi.searchSongs(q, 30));
+      if (isWestern) {
+        fetchPromises.push(itunesApi.searchSongs(queries[0], 30));
+      }
 
-      // Query Jamendo (limit=200), MusicBrainz (limit=100), and JioSaavn
-      const [jamendoLangTracks, mbRecordings, ...saavnResults] = await Promise.all([
-        jamendoApi.getTracksByLanguage(code, 200),
-        musicBrainzApi.getRecordingsByTag(mbTag, 100),
-        ...saavnQueries.map((q) => jioSaavnApi.searchSongs(q, 20))
-      ]);
-
-      const flattenedSaavn = saavnResults.flat();
+      const results = await Promise.all(fetchPromises);
+      const flattened = results.flat();
       const seen = new Set<string>();
       const finalSongs: Song[] = [];
 
-      // 1. Add all direct streaming songs from JioSaavn
-      for (const s of flattenedSaavn) {
+      for (const s of flattened) {
         if (!seen.has(s.id) && s.audioUrl) {
           seen.add(s.id);
           s.language = code;
           finalSongs.push(s);
         }
-      }
-
-      // 2. Add language tracks from Jamendo
-      for (const s of jamendoLangTracks) {
-        if (!seen.has(s.id) && s.audioUrl) {
-          seen.add(s.id);
-          s.language = code;
-          finalSongs.push(s);
-        }
-      }
-
-      // 3. Add MusicBrainz recordings with fallback streaming audio
-      if (mbRecordings && mbRecordings.length > 0) {
-        for (const mb of mbRecordings.slice(0, 30)) {
-          const exists = finalSongs.some(
-            (s) => s.title.toLowerCase() === mb.title.toLowerCase()
-          );
-          if (!exists && flattenedSaavn.length > 0) {
-            const fallbackAudio = flattenedSaavn[finalSongs.length % flattenedSaavn.length];
-            finalSongs.push({
-              id: mb.id,
-              title: mb.title,
-              artistId: mb.artistId ? `mb_artist_${mb.artistId}` : 'artist_mb',
-              artistName: mb.artistName,
-              albumTitle: mb.releaseTitle || `${mbTag.toUpperCase()} Collection`,
-              duration: mb.length || 210,
-              audioUrl: fallbackAudio ? fallbackAudio.audioUrl : CURATED_FEATURED_SONGS[0].audioUrl,
-              coverUrl: fallbackAudio ? fallbackAudio.coverUrl : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
-              language: code,
-              genre: `${mbTag.toUpperCase()} Music`,
-              releaseDate: '2024',
-              bitrate: 320
-            });
-          }
-        }
+        if (finalSongs.length >= limit) break;
       }
 
       if (finalSongs.length > 0) {
@@ -277,8 +270,14 @@ export const musicApi = {
     const foundCurated = CURATED_FEATURED_SONGS.find((s) => s.id === songId);
     if (foundCurated) return foundCurated;
 
+    if (songId.startsWith('saavn_')) {
+      const details = await jioSaavnApi.getSongDetails(songId);
+      if (details) return details;
+    }
+
     try {
-      const list = await jioSaavnApi.searchSongs(songId.replace('saavn_', '').replace('mb_', '').replace('jamendo_', ''), 5);
+      const clean = songId.replace('saavn_', '').replace('mb_', '').replace('itunes_', '').replace('jamendo_', '');
+      const list = await jioSaavnApi.searchSongs(clean, 5);
       const matched = list.find((s) => s.id === songId);
       if (matched) return matched;
       if (list.length > 0) return list[0];
@@ -312,15 +311,15 @@ export const musicApi = {
         classics,
         artists
       ] = await Promise.all([
-        jioSaavnApi.searchSongs('Top Trending Tamil Songs Anirudh', 12),
-        jioSaavnApi.searchSongs('Tamil Blockbuster Hits Kollywood', 12),
-        jioSaavnApi.searchSongs('Latest Tamil Songs 2024', 12),
-        jioSaavnApi.searchSongs('Tamil Movie Hits Vijay Rajini Kamal Ajith', 12),
-        jioSaavnApi.searchSongs('Tamil Romantic Melodies Love Songs', 12),
-        jioSaavnApi.searchSongs('Tamil Soulful Melody Sid Sriram Haricharan', 12),
-        jioSaavnApi.searchSongs('Tamil Kuthu Folk Hits Gaana', 12),
-        jioSaavnApi.searchSongs('Tamil Evergreen 90s SPB Ilayaraja', 12),
-        jioSaavnApi.searchArtists('Anirudh AR Rahman Yuvan Harris Ilayaraja', 8)
+        jioSaavnApi.searchSongs('Top Trending Tamil Songs Anirudh', 20),
+        jioSaavnApi.searchSongs('Tamil Blockbuster Hits Kollywood 2024', 20),
+        jioSaavnApi.searchSongs('Latest Tamil Songs 2024 2025', 20),
+        jioSaavnApi.searchSongs('Tamil Movie Hits Vijay Rajini Kamal Ajith', 20),
+        jioSaavnApi.searchSongs('Tamil Romantic Melodies Love Songs', 20),
+        jioSaavnApi.searchSongs('Tamil Soulful Melody Sid Sriram Haricharan', 20),
+        jioSaavnApi.searchSongs('Tamil Kuthu Folk Hits Gaana', 20),
+        jioSaavnApi.searchSongs('Tamil Evergreen 90s SPB Ilayaraja', 20),
+        jioSaavnApi.searchArtists('Anirudh AR Rahman Yuvan Harris Ilayaraja', 12)
       ]);
 
       const dedupe = (songs: Song[]): Song[] => {
