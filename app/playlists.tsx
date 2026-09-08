@@ -16,13 +16,15 @@ import { usePlaylists } from '../hooks/usePlaylists';
 import { usePlayer } from '../hooks/usePlayer';
 import { SongCard } from '../components/SongCard';
 import { Loading } from '../components/Loading';
+import { SpotifyImportModal } from '../components/SpotifyImportModal';
 import { Playlist } from '../types/playlist';
 
 export default function PlaylistsScreen() {
-  const { playlists, loading, createPlaylist, deletePlaylist } = usePlaylists();
+  const { playlists, loading, createPlaylist, deletePlaylist, refresh } = usePlaylists();
   const { playTrack } = usePlayer();
   const [activePlaylist, setActivePlaylist] = useState<Playlist | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [showSpotifyModal, setShowSpotifyModal] = useState(false);
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
 
@@ -104,13 +106,24 @@ export default function PlaylistsScreen() {
             <Text style={styles.headerTitle}>Your Playlists</Text>
             <Text style={styles.headerSubtitle}>Create custom music mixes and playlists.</Text>
           </View>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => setModalVisible(true)}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="add" size={24} color="#000000" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+            <TouchableOpacity
+              style={[styles.addBtn, { backgroundColor: '#1db954', width: 'auto', paddingHorizontal: 14, borderRadius: 20, flexDirection: 'row', gap: 6 }]}
+              onPress={() => setShowSpotifyModal(true)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="musical-notes" size={18} color="#000000" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#000000' }}>Spotify Import</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => setModalVisible(true)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="add" size={24} color="#000000" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {loading ? (
@@ -182,6 +195,13 @@ export default function PlaylistsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Spotify Import Modal */}
+      <SpotifyImportModal
+        visible={showSpotifyModal}
+        onClose={() => setShowSpotifyModal(false)}
+        onImportComplete={() => refresh()}
+      />
     </SafeAreaView>
   );
 }
