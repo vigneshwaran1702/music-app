@@ -1,5 +1,6 @@
 import { jioSaavnApi } from '../api/jiosaavn';
 import { itunesApi } from '../api/itunes';
+import { youtubeApi } from '../api/youtube';
 import { musicBrainzApi } from '../api/musicbrainz';
 import { CURATED_FEATURED_SONGS, CURATED_ALBUMS, CURATED_ARTISTS } from '../api/sources';
 import { Song } from '../types/music';
@@ -85,8 +86,8 @@ export const musicApi = {
     const clean = query.trim();
 
     try {
-      // Parallel search across JioSaavn, iTunes, and MusicBrainz
-      const [saavnSongs, saavnArtists, saavnAlbums, itunesSongs, itunesArtists, itunesAlbums, mbRecordings] =
+      // Parallel search across JioSaavn, iTunes, YouTube, and MusicBrainz
+      const [saavnSongs, saavnArtists, saavnAlbums, itunesSongs, itunesArtists, itunesAlbums, youtubeSongs, mbRecordings] =
         await Promise.all([
           jioSaavnApi.searchSongs(clean, 50, 1),
           jioSaavnApi.searchArtists(clean, 15),
@@ -94,11 +95,12 @@ export const musicApi = {
           itunesApi.searchSongs(clean, 30),
           itunesApi.searchArtists(clean, 10),
           itunesApi.searchAlbums(clean, 10),
+          youtubeApi.searchSongs(clean, 15),
           musicBrainzApi.searchRecordings(clean, 10)
         ]);
 
-      // Combine and deduplicate songs (prioritize JioSaavn for full length, then iTunes)
-      const allSongs = [...saavnSongs, ...itunesSongs];
+      // Combine and deduplicate songs (prioritize JioSaavn for full length, then iTunes & YouTube)
+      const allSongs = [...saavnSongs, ...itunesSongs, ...youtubeSongs];
       const seenIds = new Set<string>();
       const seenTitles = new Set<string>();
       const deduplicatedSongs: Song[] = [];

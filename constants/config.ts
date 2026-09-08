@@ -6,6 +6,8 @@ export const APP_CONFIG = {
   COVERART_ARCHIVE_BASE: 'https://coverartarchive.org',
   JAMENDO_CLIENT_ID: '88adca7c',
   JAMENDO_API_BASE: 'https://api.jamendo.com/v3.0',
+  YOUTUBE_API_KEY: process.env.EXPO_PUBLIC_YOUTUBE_API_KEY || '',
+  YOUTUBE_API_BASE: 'https://www.googleapis.com/youtube/v3',
   DEFAULT_LANGUAGE: 'all',
   AUDIO_BITRATE: '320kbps', // '320kbps' | '160kbps' | '96kbps'
   STORAGE_KEYS: {
