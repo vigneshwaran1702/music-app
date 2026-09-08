@@ -3,6 +3,7 @@ import { Audio, AVPlaybackStatus } from 'expo-av';
 import { Song, PlaybackMode, PlaybackStatus } from '../types/music';
 import { historyDb } from '../database/history';
 import { shuffleArray } from '../utils/filterMusic';
+import { jioSaavnApi } from '../api/jiosaavn';
 
 interface PlayerContextType {
   currentTrack: Song | null;
@@ -182,7 +183,28 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         soundRef.current = null;
       }
 
-      const audioUri = track.localPath || track.audioUrl;
+      let audioUri = track.localPath || track.audioUrl;
+
+      // Ensure full-length audio stream (replace any 30-sec previews with full 320kbps streams)
+      if (
+        !audioUri ||
+        audioUri.includes('apple.com') ||
+        audioUri.includes('AudioPreview') ||
+        audioUri.includes('youtube.com/watch')
+      ) {
+        try {
+          const fullMatch = await jioSaavnApi.searchSongs(`${track.title} ${track.artistName}`, 1);
+          if (fullMatch.length > 0 && fullMatch[0].audioUrl) {
+            audioUri = fullMatch[0].audioUrl;
+            track.audioUrl = fullMatch[0].audioUrl;
+            track.duration = fullMatch[0].duration;
+            setDuration(fullMatch[0].duration);
+          }
+        } catch {
+          // ignore
+        }
+      }
+
       const { sound } = await Audio.Sound.createAsync(
         { uri: audioUri },
         {

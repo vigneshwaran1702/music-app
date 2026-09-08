@@ -1,7 +1,6 @@
 import { Song } from '../types/music';
 import { APP_CONFIG } from '../constants/config';
 import { decodeHtmlEntities, jioSaavnApi } from './jiosaavn';
-import { itunesApi } from './itunes';
 
 export interface YouTubeSearchItem {
   id: { videoId: string };
@@ -34,7 +33,6 @@ function cleanYouTubeTitle(rawTitle: string): { title: string; artistName: strin
     .replace(/\|.*$/g, '')
     .trim();
 
-  // Try parsing "Artist - Title" or "Title - Artist" format
   if (cleaned.includes(' - ')) {
     const parts = cleaned.split(' - ');
     if (parts.length >= 2) {
@@ -71,8 +69,10 @@ export const youtubeApi = {
 
             const songs: Song[] = [];
             for (const item of rawItems) {
-              const song = await this.mapYouTubeItemWithAudio(item);
-              songs.push(song);
+              const song = await this.mapYouTubeItemWithFullAudio(item);
+              if (song.audioUrl) {
+                songs.push(song);
+              }
             }
             return songs;
           }
@@ -85,7 +85,7 @@ export const youtubeApi = {
     return [];
   },
 
-  async mapYouTubeItemWithAudio(item: YouTubeSearchItem): Promise<Song> {
+  async mapYouTubeItemWithFullAudio(item: YouTubeSearchItem): Promise<Song> {
     const videoId = item.id.videoId;
     const { title, artistName } = cleanYouTubeTitle(item.snippet.title);
     const channelName = decodeHtmlEntities(item.snippet.channelTitle);
@@ -95,17 +95,21 @@ export const youtubeApi = {
       item.snippet.thumbnails.default?.url ||
       `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
-    // Try resolving a high-fidelity 320kbps stream via JioSaavn or iTunes matching
+    // Resolve full-length 320kbps audio from JioSaavn
     let audioUrl = '';
+    let duration = 210;
     try {
       const matchQuery = `${title} ${artistName !== 'YouTube Music' ? artistName : ''}`.trim();
       const saavnMatches = await jioSaavnApi.searchSongs(matchQuery, 1);
       if (saavnMatches.length > 0 && saavnMatches[0].audioUrl) {
         audioUrl = saavnMatches[0].audioUrl;
+        duration = saavnMatches[0].duration || 210;
       } else {
-        const itunesMatches = await itunesApi.searchSongs(matchQuery, 1);
-        if (itunesMatches.length > 0 && itunesMatches[0].audioUrl) {
-          audioUrl = itunesMatches[0].audioUrl;
+        // Fallback search with title only
+        const saavnTitleMatches = await jioSaavnApi.searchSongs(title, 1);
+        if (saavnTitleMatches.length > 0 && saavnTitleMatches[0].audioUrl) {
+          audioUrl = saavnTitleMatches[0].audioUrl;
+          duration = saavnTitleMatches[0].duration || 210;
         }
       }
     } catch {
@@ -118,8 +122,8 @@ export const youtubeApi = {
       artistId: `yt_channel_${item.snippet.channelId || 'yt'}`,
       artistName: artistName !== 'YouTube Music' ? artistName : channelName,
       albumTitle: `${channelName} (YouTube)`,
-      duration: 210,
-      audioUrl: audioUrl || `https://www.youtube.com/watch?v=${videoId}`,
+      duration,
+      audioUrl,
       coverUrl,
       language: 'ta',
       genre: 'Tamil / YouTube',
