@@ -236,7 +236,14 @@ export default function SearchScreen() {
                     {/* Top 4 Songs List beside Top Result */}
                     {results.songs.length > 0 && (
                       <View style={[styles.section, isDesktop ? styles.topResultRightCol : { width: '100%' }]}>
-                        <Text style={styles.sectionTitle}>Songs</Text>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                          <Text style={styles.sectionTitle}>Songs</Text>
+                          {results.songs.length > 4 && (
+                            <TouchableOpacity onPress={() => setFilterType('songs')}>
+                              <Text style={{ color: '#1ed760', fontSize: 13, fontWeight: '600' }}>See all ({results.songs.length})</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
                         {results.songs.slice(0, 4).map((s, idx) => (
                           <SongCard
                             key={s.id}
@@ -288,6 +295,22 @@ export default function SearchScreen() {
                         <AlbumCard key={al.id} album={al} />
                       ))}
                     </ScrollView>
+                  </View>
+                )}
+
+                {/* All Remaining Songs under 'all' filter */}
+                {filterType === 'all' && results.songs.length > 4 && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>More Songs ({results.songs.length - 4})</Text>
+                    {results.songs.slice(4).map((s, idx) => (
+                      <SongCard
+                        key={s.id}
+                        song={s}
+                        playlist={results.songs}
+                        variant="list"
+                        index={idx + 4}
+                      />
+                    ))}
                   </View>
                 )}
               </>
