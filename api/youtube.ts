@@ -1,6 +1,7 @@
 import { Song } from '../types/music';
 import { APP_CONFIG } from '../constants/config';
-import { decodeHtmlEntities } from './jiosaavn';
+import { decodeHtmlEntities, jioSaavnApi } from './jiosaavn';
+import { itunesApi } from './itunes';
 
 export interface YouTubeSearchItem {
   id: { videoId: string };
@@ -55,7 +56,6 @@ export const youtubeApi = {
     if (!query || !query.trim()) return [];
     const cleanQuery = query.trim();
 
-    // 1. If user provided a YouTube API key in config / environment
     if (APP_CONFIG.YOUTUBE_API_KEY) {
       try {
         const url = `${APP_CONFIG.YOUTUBE_API_BASE}/search?part=snippet&maxResults=${limit}&q=${encodeURIComponent(
@@ -65,9 +65,16 @@ export const youtubeApi = {
         if (response.ok) {
           const data = await response.json();
           if (data.items && Array.isArray(data.items)) {
-            return data.items
-              .filter((item: YouTubeSearchItem) => Boolean(item.id?.videoId))
-              .map((item: YouTubeSearchItem) => this.mapYouTubeItem(item));
+            const rawItems = data.items.filter((item: YouTubeSearchItem) =>
+              Boolean(item.id?.videoId)
+            );
+
+            const songs: Song[] = [];
+            for (const item of rawItems) {
+              const song = await this.mapYouTubeItemWithAudio(item);
+              songs.push(song);
+            }
+            return songs;
           }
         }
       } catch (err) {
@@ -78,7 +85,7 @@ export const youtubeApi = {
     return [];
   },
 
-  mapYouTubeItem(item: YouTubeSearchItem): Song {
+  async mapYouTubeItemWithAudio(item: YouTubeSearchItem): Promise<Song> {
     const videoId = item.id.videoId;
     const { title, artistName } = cleanYouTubeTitle(item.snippet.title);
     const channelName = decodeHtmlEntities(item.snippet.channelTitle);
@@ -88,8 +95,22 @@ export const youtubeApi = {
       item.snippet.thumbnails.default?.url ||
       `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
-    // Direct streaming URL or fallback audio URL
-    const audioUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    // Try resolving a high-fidelity 320kbps stream via JioSaavn or iTunes matching
+    let audioUrl = '';
+    try {
+      const matchQuery = `${title} ${artistName !== 'YouTube Music' ? artistName : ''}`.trim();
+      const saavnMatches = await jioSaavnApi.searchSongs(matchQuery, 1);
+      if (saavnMatches.length > 0 && saavnMatches[0].audioUrl) {
+        audioUrl = saavnMatches[0].audioUrl;
+      } else {
+        const itunesMatches = await itunesApi.searchSongs(matchQuery, 1);
+        if (itunesMatches.length > 0 && itunesMatches[0].audioUrl) {
+          audioUrl = itunesMatches[0].audioUrl;
+        }
+      }
+    } catch {
+      // ignore
+    }
 
     return {
       id: `yt_${videoId}`,
@@ -98,12 +119,12 @@ export const youtubeApi = {
       artistName: artistName !== 'YouTube Music' ? artistName : channelName,
       albumTitle: `${channelName} (YouTube)`,
       duration: 210,
-      audioUrl,
+      audioUrl: audioUrl || `https://www.youtube.com/watch?v=${videoId}`,
       coverUrl,
       language: 'ta',
       genre: 'Tamil / YouTube',
       releaseDate: item.snippet.publishedAt ? item.snippet.publishedAt.substring(0, 4) : '2024',
-      bitrate: 160
+      bitrate: 320
     };
   }
 };
