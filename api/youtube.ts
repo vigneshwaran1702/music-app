@@ -1,6 +1,6 @@
 import { Song } from '../types/music';
 import { APP_CONFIG } from '../constants/config';
-import { decodeHtmlEntities } from './jiosaavn';
+import { decodeHtmlEntities, jioSaavnApi } from './jiosaavn';
 
 export interface YouTubeSearchItem {
   id: { videoId: string };
@@ -33,7 +33,6 @@ function cleanYouTubeTitle(rawTitle: string): { title: string; artistName: strin
     .replace(/\|.*$/g, '')
     .trim();
 
-  // Try parsing "Artist - Title" or "Title - Artist" format
   if (cleaned.includes(' - ')) {
     const parts = cleaned.split(' - ');
     if (parts.length >= 2) {
@@ -55,7 +54,6 @@ export const youtubeApi = {
     if (!query || !query.trim()) return [];
     const cleanQuery = query.trim();
 
-    // 1. If user provided a YouTube API key in config / environment
     if (APP_CONFIG.YOUTUBE_API_KEY) {
       try {
         const url = `${APP_CONFIG.YOUTUBE_API_BASE}/search?part=snippet&maxResults=${limit}&q=${encodeURIComponent(
@@ -65,9 +63,18 @@ export const youtubeApi = {
         if (response.ok) {
           const data = await response.json();
           if (data.items && Array.isArray(data.items)) {
-            return data.items
-              .filter((item: YouTubeSearchItem) => Boolean(item.id?.videoId))
-              .map((item: YouTubeSearchItem) => this.mapYouTubeItem(item));
+            const rawItems = data.items.filter((item: YouTubeSearchItem) =>
+              Boolean(item.id?.videoId)
+            );
+
+            const songs: Song[] = [];
+            for (const item of rawItems) {
+              const song = await this.mapYouTubeItemWithFullAudio(item);
+              if (song.audioUrl) {
+                songs.push(song);
+              }
+            }
+            return songs;
           }
         }
       } catch (err) {
@@ -78,7 +85,7 @@ export const youtubeApi = {
     return [];
   },
 
-  mapYouTubeItem(item: YouTubeSearchItem): Song {
+  async mapYouTubeItemWithFullAudio(item: YouTubeSearchItem): Promise<Song> {
     const videoId = item.id.videoId;
     const { title, artistName } = cleanYouTubeTitle(item.snippet.title);
     const channelName = decodeHtmlEntities(item.snippet.channelTitle);
@@ -88,8 +95,26 @@ export const youtubeApi = {
       item.snippet.thumbnails.default?.url ||
       `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
-    // Direct streaming URL or fallback audio URL
-    const audioUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    // Resolve full-length 320kbps audio from JioSaavn
+    let audioUrl = '';
+    let duration = 210;
+    try {
+      const matchQuery = `${title} ${artistName !== 'YouTube Music' ? artistName : ''}`.trim();
+      const saavnMatches = await jioSaavnApi.searchSongs(matchQuery, 1);
+      if (saavnMatches.length > 0 && saavnMatches[0].audioUrl) {
+        audioUrl = saavnMatches[0].audioUrl;
+        duration = saavnMatches[0].duration || 210;
+      } else {
+        // Fallback search with title only
+        const saavnTitleMatches = await jioSaavnApi.searchSongs(title, 1);
+        if (saavnTitleMatches.length > 0 && saavnTitleMatches[0].audioUrl) {
+          audioUrl = saavnTitleMatches[0].audioUrl;
+          duration = saavnTitleMatches[0].duration || 210;
+        }
+      }
+    } catch {
+      // ignore
+    }
 
     return {
       id: `yt_${videoId}`,
@@ -97,13 +122,13 @@ export const youtubeApi = {
       artistId: `yt_channel_${item.snippet.channelId || 'yt'}`,
       artistName: artistName !== 'YouTube Music' ? artistName : channelName,
       albumTitle: `${channelName} (YouTube)`,
-      duration: 210,
+      duration,
       audioUrl,
       coverUrl,
       language: 'ta',
       genre: 'Tamil / YouTube',
       releaseDate: item.snippet.publishedAt ? item.snippet.publishedAt.substring(0, 4) : '2024',
-      bitrate: 160
+      bitrate: 320
     };
   }
 };

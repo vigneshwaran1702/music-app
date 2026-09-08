@@ -2,6 +2,7 @@ import { CURATED_ARTISTS, CURATED_FEATURED_SONGS } from '../api/sources';
 import { musicBrainzApi } from '../api/musicbrainz';
 import { jioSaavnApi } from '../api/jiosaavn';
 import { itunesApi } from '../api/itunes';
+import { youtubeApi } from '../api/youtube';
 import { Artist } from '../types/artist';
 import { Song } from '../types/music';
 
@@ -30,15 +31,16 @@ export const artistApi = {
     const artist = CURATED_ARTISTS.find((a) => a.id === artistId);
     if (artist) {
       try {
-        const [liveSaavn, liveItunes, mbData] = await Promise.all([
+        const [liveSaavn, liveItunes, liveYt, mbData] = await Promise.all([
           jioSaavnApi.searchSongs(artist.name, 35),
           itunesApi.searchSongs(artist.name, 15),
+          youtubeApi.searchSongs(`${artist.name} hits songs`, 15),
           musicBrainzApi.getArtistDetails(artist.name)
         ]);
 
         const songs: Song[] = [];
         const seen = new Set<string>();
-        for (const s of [...liveSaavn, ...liveItunes]) {
+        for (const s of [...liveSaavn, ...liveYt, ...liveItunes]) {
           if (s.audioUrl && !seen.has(s.id)) {
             seen.add(s.id);
             songs.push(s);
@@ -65,24 +67,26 @@ export const artistApi = {
       }
     }
 
-    // Dynamic Artist query (JioSaavn or iTunes or generic ID)
+    // Dynamic Artist query (JioSaavn, YouTube, or iTunes)
     try {
       const cleanName = decodeURIComponent(
         artistId
           .replace('saavn_artist_', '')
           .replace('itunes_artist_', '')
+          .replace('yt_channel_', '')
           .replace(/_/g, ' ')
       );
 
-      const [saavnSongs, itunesSongs, mbData] = await Promise.all([
+      const [saavnSongs, liveYt, itunesSongs, mbData] = await Promise.all([
         jioSaavnApi.searchSongs(cleanName, 35),
+        youtubeApi.searchSongs(`${cleanName} hits`, 15),
         itunesApi.searchSongs(cleanName, 15),
         musicBrainzApi.getArtistDetails(cleanName)
       ]);
 
       const songs: Song[] = [];
       const seen = new Set<string>();
-      for (const s of [...saavnSongs, ...itunesSongs]) {
+      for (const s of [...saavnSongs, ...liveYt, ...itunesSongs]) {
         if (s.audioUrl && !seen.has(s.id)) {
           seen.add(s.id);
           songs.push(s);
