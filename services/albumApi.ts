@@ -7,8 +7,8 @@ export const albumApi = {
   async getAllAlbums(): Promise<Album[]> {
     try {
       const [saavnAlbums, itunesAlbums] = await Promise.all([
-        jioSaavnApi.searchAlbums('Top Blockbuster Hits Tamil Bollywood English', 20),
-        itunesApi.searchAlbums('Top Albums', 10)
+        jioSaavnApi.searchAlbums('Top Blockbuster Hits Tamil Bollywood English', 25).catch(() => []),
+        itunesApi.searchAlbums('Top Albums 2024', 20).catch(() => [])
       ]);
 
       const map = new Map<string, Album>();

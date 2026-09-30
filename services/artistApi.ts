@@ -10,8 +10,8 @@ export const artistApi = {
   async getAllArtists(): Promise<Artist[]> {
     try {
       const [saavnArtists, itunesArtists] = await Promise.all([
-        jioSaavnApi.searchArtists('Anirudh AR Rahman Arijit Singh Diljit Coldplay Taylor Swift', 20),
-        itunesApi.searchArtists('Top Artists', 10)
+        jioSaavnApi.searchArtists('Anirudh AR Rahman Arijit Singh Diljit Coldplay Taylor Swift', 25).catch(() => []),
+        itunesApi.searchArtists('Top Artists 2024', 20).catch(() => [])
       ]);
 
       const map = new Map<string, Artist>();

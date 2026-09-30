@@ -15,7 +15,7 @@ export const musicApi = {
     chillOut: Song[];
   }> {
     try {
-      // Parallel fetch across YouTube, JioSaavn, and iTunes
+      // Parallel fetch across YouTube, JioSaavn, and iTunes with independent error boundaries
       const [
         saavnTrending,
         saavnTamil,
@@ -23,17 +23,19 @@ export const musicApi = {
         saavnBollywood,
         saavnChill,
         itunesTrending,
+        itunesGlobal,
         ytTamilTrending,
         ytGlobalTrending
       ] = await Promise.all([
-        jioSaavnApi.getTrendingSongs(30),
-        jioSaavnApi.searchSongs('Top Tamil Hits Anirudh AR Rahman 2024', 25),
-        jioSaavnApi.searchSongs('Latest Indian and Global Hits 2024', 25),
-        jioSaavnApi.searchSongs('Top Bollywood Trending Hits Arijit Singh', 20),
-        jioSaavnApi.searchSongs('Lo-Fi Chill Acoustic Melodies Instrumental', 20),
-        itunesApi.searchSongs('Top Hits', 15),
-        youtubeApi.searchSongs('Top Trending Tamil Songs 2024 Anirudh', 12),
-        youtubeApi.searchSongs('Trending YouTube Music Hits 2024', 10)
+        jioSaavnApi.getTrendingSongs(30).catch(() => []),
+        jioSaavnApi.searchSongs('Top Tamil Hits Anirudh AR Rahman 2024', 25).catch(() => []),
+        jioSaavnApi.searchSongs('Latest Indian and Global Hits 2024', 25).catch(() => []),
+        jioSaavnApi.searchSongs('Top Bollywood Trending Hits Arijit Singh', 20).catch(() => []),
+        jioSaavnApi.searchSongs('Lo-Fi Chill Acoustic Melodies Instrumental', 20).catch(() => []),
+        itunesApi.searchSongs('Top Hits', 30).catch(() => []),
+        itunesApi.searchSongs('Pop Hits 2024', 25).catch(() => []),
+        youtubeApi.searchSongs('Top Trending Tamil Songs 2024 Anirudh', 12).catch(() => []),
+        youtubeApi.searchSongs('Trending YouTube Music Hits 2024', 10).catch(() => [])
       ]);
 
       const dedupe = (list: Song[]): Song[] => {
@@ -46,17 +48,18 @@ export const musicApi = {
       };
 
       const allTrending = dedupe([
-        ...ytTamilTrending,
         ...saavnTrending,
+        ...itunesTrending,
         ...saavnTamil,
-        ...ytGlobalTrending,
+        ...ytTamilTrending,
         ...saavnBollywood,
-        ...itunesTrending
+        ...itunesGlobal,
+        ...ytGlobalTrending
       ]);
 
       const featured = allTrending.slice(0, 14);
       const trending = allTrending.length > 0 ? allTrending : CURATED_FEATURED_SONGS;
-      const newDrops = dedupe([...ytTamilTrending, ...saavnNew, ...saavnTamil.slice(6)]);
+      const newDrops = dedupe([...saavnNew, ...itunesGlobal, ...ytTamilTrending, ...saavnTamil.slice(6)]);
       const chillTracks = dedupe([
         ...saavnChill,
         ...trending.filter((s) =>
@@ -98,29 +101,27 @@ export const musicApi = {
     const clean = query.trim();
 
     try {
-      // Parallel search across YouTube, JioSaavn, iTunes, and MusicBrainz
+      // Parallel search across JioSaavn, iTunes, YouTube, and MusicBrainz
       const [
-        ytSongs,
         saavnSongs,
-        saavnArtists,
-        saavnAlbums,
         itunesSongs,
+        ytSongs,
+        saavnArtists,
         itunesArtists,
-        itunesAlbums,
-        mbRecordings
+        saavnAlbums,
+        itunesAlbums
       ] = await Promise.all([
-        youtubeApi.searchSongs(clean, 20),
-        jioSaavnApi.searchSongs(clean, 40, 1),
-        jioSaavnApi.searchArtists(clean, 15),
-        jioSaavnApi.searchAlbums(clean, 15),
-        itunesApi.searchSongs(clean, 25),
-        itunesApi.searchArtists(clean, 10),
-        itunesApi.searchAlbums(clean, 10),
-        musicBrainzApi.searchRecordings(clean, 10)
+        jioSaavnApi.searchSongs(clean, 40, 1).catch(() => []),
+        itunesApi.searchSongs(clean, 40).catch(() => []),
+        youtubeApi.searchSongs(clean, 20).catch(() => []),
+        jioSaavnApi.searchArtists(clean, 15).catch(() => []),
+        itunesApi.searchArtists(clean, 15).catch(() => []),
+        jioSaavnApi.searchAlbums(clean, 15).catch(() => []),
+        itunesApi.searchAlbums(clean, 15).catch(() => [])
       ]);
 
-      // Combine and deduplicate songs (YouTube + JioSaavn + iTunes)
-      const allSongs = [...ytSongs, ...saavnSongs, ...itunesSongs];
+      // Combine and deduplicate songs (JioSaavn full audio + iTunes global + YouTube)
+      const allSongs = [...saavnSongs, ...itunesSongs, ...ytSongs];
       const seenIds = new Set<string>();
       const seenTitles = new Set<string>();
       const deduplicatedSongs: Song[] = [];
@@ -176,12 +177,7 @@ export const musicApi = {
       );
 
       return {
-        songs:
-          deduplicatedSongs.length > 0
-            ? deduplicatedSongs
-            : fallbackCurated.length > 0
-            ? fallbackCurated
-            : CURATED_FEATURED_SONGS,
+        songs: deduplicatedSongs.length > 0 ? deduplicatedSongs : fallbackCurated,
         artists: Array.from(artistMap.values()),
         albums: Array.from(albumMap.values())
       };
@@ -258,28 +254,10 @@ export const musicApi = {
 
       // Fetch from YouTube, JioSaavn & iTunes in parallel
       const fetchPromises: Promise<Song[]>[] = [
-        youtubeApi.searchSongs(queries[0], 20),
-        ...queries.map((q) => jioSaavnApi.searchSongs(q, 30))
+        youtubeApi.searchSongs(queries[0], 20).catch(() => []),
+        itunesApi.searchSongs(queries[0], 25).catch(() => []),
+        ...queries.map((q) => jioSaavnApi.searchSongs(q, 30).catch(() => []))
       ];
-
-      const isWestern = [
-        'en',
-        'english',
-        'es',
-        'spanish',
-        'fr',
-        'french',
-        'de',
-        'german',
-        'ja',
-        'japanese',
-        'ko',
-        'korean'
-      ].includes(code);
-
-      if (isWestern) {
-        fetchPromises.push(itunesApi.searchSongs(queries[0], 25));
-      }
 
       const results = await Promise.all(fetchPromises);
       const flattened = results.flat();
@@ -356,19 +334,21 @@ export const musicApi = {
         melody,
         folk,
         classics,
+        itunesTamil,
         artists
       ] = await Promise.all([
-        youtubeApi.searchSongs('Top Trending Tamil Songs Anirudh 2024', 15),
-        youtubeApi.searchSongs('Tamil Blockbuster Kollywood Video Hits 2024', 15),
-        jioSaavnApi.searchSongs('Top Trending Tamil Songs Anirudh', 20),
-        jioSaavnApi.searchSongs('Tamil Blockbuster Hits Kollywood 2024', 20),
-        jioSaavnApi.searchSongs('Latest Tamil Songs 2024 2025', 20),
-        jioSaavnApi.searchSongs('Tamil Movie Hits Vijay Rajini Kamal Ajith', 20),
-        jioSaavnApi.searchSongs('Tamil Romantic Melodies Love Songs', 20),
-        jioSaavnApi.searchSongs('Tamil Soulful Melody Sid Sriram Haricharan', 20),
-        jioSaavnApi.searchSongs('Tamil Kuthu Folk Hits Gaana', 20),
-        jioSaavnApi.searchSongs('Tamil Evergreen 90s SPB Ilayaraja', 20),
-        jioSaavnApi.searchArtists('Anirudh AR Rahman Yuvan Harris Ilayaraja', 12)
+        youtubeApi.searchSongs('Top Trending Tamil Songs Anirudh 2024', 15).catch(() => []),
+        youtubeApi.searchSongs('Tamil Blockbuster Kollywood Video Hits 2024', 15).catch(() => []),
+        jioSaavnApi.searchSongs('Top Trending Tamil Songs Anirudh', 20).catch(() => []),
+        jioSaavnApi.searchSongs('Tamil Blockbuster Hits Kollywood 2024', 20).catch(() => []),
+        jioSaavnApi.searchSongs('Latest Tamil Songs 2024 2025', 20).catch(() => []),
+        jioSaavnApi.searchSongs('Tamil Movie Hits Vijay Rajini Kamal Ajith', 20).catch(() => []),
+        jioSaavnApi.searchSongs('Tamil Romantic Melodies Love Songs', 20).catch(() => []),
+        jioSaavnApi.searchSongs('Tamil Soulful Melody Sid Sriram Haricharan', 20).catch(() => []),
+        jioSaavnApi.searchSongs('Tamil Kuthu Folk Hits Gaana', 20).catch(() => []),
+        jioSaavnApi.searchSongs('Tamil Evergreen 90s SPB Ilayaraja', 20).catch(() => []),
+        itunesApi.searchSongs('Tamil Top Hits Anirudh Rahman', 20).catch(() => []),
+        jioSaavnApi.searchArtists('Anirudh AR Rahman Yuvan Harris Ilayaraja', 12).catch(() => [])
       ]);
 
       const dedupe = (songs: Song[]): Song[] => {
@@ -384,8 +364,8 @@ export const musicApi = {
       const fallbackTamil = CURATED_FEATURED_SONGS.filter((s) => s.language === 'ta');
 
       return {
-        trending: dedupe([...ytTrending, ...trending]).length > 0 ? dedupe([...ytTrending, ...trending]) : fallbackTamil,
-        hits: dedupe([...ytHits, ...hits]).length > 0 ? dedupe([...ytHits, ...hits]) : fallbackTamil,
+        trending: dedupe([...ytTrending, ...trending, ...itunesTamil]).length > 0 ? dedupe([...ytTrending, ...trending, ...itunesTamil]) : fallbackTamil,
+        hits: dedupe([...ytHits, ...hits, ...itunesTamil.slice(5)]).length > 0 ? dedupe([...ytHits, ...hits, ...itunesTamil.slice(5)]) : fallbackTamil,
         latest: dedupe(latest).length > 0 ? dedupe(latest) : fallbackTamil,
         movieHits: dedupe(movieHits).length > 0 ? dedupe(movieHits) : fallbackTamil,
         loveSongs: dedupe(loveSongs).length > 0 ? dedupe(loveSongs) : fallbackTamil,

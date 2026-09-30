@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import CryptoJS from 'crypto-js';
 import { Song } from '../types/music';
 import { Album } from '../types/album';
@@ -59,27 +60,99 @@ export function enhanceArtworkUrl(imgUrl: string): string {
     .replace('http://', 'https://');
 }
 
-async function fetchDirectSaavn(endpointUrl: string): Promise<any> {
+function parseSaavnJson(text: string): any {
+  if (!text) return null;
   try {
-    const response = await fetch(endpointUrl, {
-      headers: SAAVN_HEADERS
-    });
-    if (response.ok) {
-      const text = await response.text();
+    return JSON.parse(text);
+  } catch {
+    // Try trimming JSON object
+    const startObj = text.indexOf('{');
+    const endObj = text.lastIndexOf('}');
+    if (startObj !== -1 && endObj !== -1 && endObj > startObj) {
       try {
-        return JSON.parse(text);
+        return JSON.parse(text.substring(startObj, endObj + 1));
       } catch {
-        // Try trimming any prefix/suffix
-        const start = text.indexOf('{');
-        const end = text.lastIndexOf('}');
-        if (start !== -1 && end !== -1) {
-          return JSON.parse(text.substring(start, end + 1));
-        }
+        // continue
       }
     }
-  } catch (err) {
-    console.warn('[JioSaavn API] fetch error for', endpointUrl, err);
+    // Try trimming JSON array
+    const startArr = text.indexOf('[');
+    const endArr = text.lastIndexOf(']');
+    if (startArr !== -1 && endArr !== -1 && endArr > startArr) {
+      try {
+        return JSON.parse(text.substring(startArr, endArr + 1));
+      } catch {
+        // continue
+      }
+    }
   }
+  return null;
+}
+
+async function fetchDirectSaavn(endpointUrl: string): Promise<any> {
+  const isWeb = Platform.OS === 'web' || typeof window !== 'undefined';
+
+  // Strategy 1: Local Metro server proxy for Web (bypasses CORS in development)
+  if (isWeb && typeof window !== 'undefined' && window.location?.origin) {
+    try {
+      const proxyUrl = `${window.location.origin}/api/saavn-proxy?url=${encodeURIComponent(endpointUrl)}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(proxyUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const text = await res.text();
+        const data = parseSaavnJson(text);
+        if (data) return data;
+      }
+    } catch {
+      // proxy failed, continue to other strategies
+    }
+  }
+
+  // Strategy 2: Direct request (works cleanly on iOS and Android native apps)
+  try {
+    const headers = isWeb ? { Accept: 'application/json, text/plain, */*' } : SAAVN_HEADERS;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(endpointUrl, {
+      headers,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (response.ok) {
+      const text = await response.text();
+      const data = parseSaavnJson(text);
+      if (data) return data;
+    }
+  } catch (err) {
+    // direct fetch might be blocked by CORS on web
+  }
+
+  // Strategy 3: Public CORS proxy fallbacks for web deployment
+  if (isWeb) {
+    const fallbackProxies = [
+      (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+    ];
+
+    for (const proxyFn of fallbackProxies) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const pUrl = proxyFn(endpointUrl);
+        const res = await fetch(pUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          const text = await res.text();
+          const data = parseSaavnJson(text);
+          if (data) return data;
+        }
+      } catch {
+        // try next
+      }
+    }
+  }
+
   return null;
 }
 

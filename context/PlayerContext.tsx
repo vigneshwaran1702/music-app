@@ -4,6 +4,7 @@ import { Song, PlaybackMode, PlaybackStatus } from '../types/music';
 import { historyDb } from '../database/history';
 import { shuffleArray } from '../utils/filterMusic';
 import { jioSaavnApi } from '../api/jiosaavn';
+import { itunesApi } from '../api/itunes';
 
 interface PlayerContextType {
   currentTrack: Song | null;
@@ -185,7 +186,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       let audioUri = track.localPath || track.audioUrl;
 
-      // Ensure full-length audio stream (replace any 30-sec previews with full 320kbps streams)
+      // Try resolving full-length 320kbps audio from JioSaavn if currently on preview or missing
       if (
         !audioUri ||
         audioUri.includes('apple.com') ||
@@ -193,16 +194,38 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         audioUri.includes('youtube.com/watch')
       ) {
         try {
-          const fullMatch = await jioSaavnApi.searchSongs(`${track.title} ${track.artistName}`, 1);
-          if (fullMatch.length > 0 && fullMatch[0].audioUrl) {
+          const timeoutPromise = new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 1500));
+          const saavnPromise = jioSaavnApi.searchSongs(`${track.title} ${track.artistName}`, 1);
+          const fullMatch = await Promise.race([saavnPromise, timeoutPromise]);
+
+          if (fullMatch && fullMatch.length > 0 && fullMatch[0].audioUrl) {
             audioUri = fullMatch[0].audioUrl;
             track.audioUrl = fullMatch[0].audioUrl;
             track.duration = fullMatch[0].duration;
             setDuration(fullMatch[0].duration);
+          } else if (!audioUri) {
+            // If track had no audio at all, resolve from iTunes
+            const itunesMatch = await Promise.race([
+              itunesApi.searchSongs(`${track.title} ${track.artistName}`, 1),
+              timeoutPromise
+            ]);
+            if (itunesMatch && itunesMatch.length > 0 && itunesMatch[0].audioUrl) {
+              audioUri = itunesMatch[0].audioUrl;
+              track.audioUrl = itunesMatch[0].audioUrl;
+              track.duration = itunesMatch[0].duration;
+              setDuration(itunesMatch[0].duration);
+            }
           }
         } catch {
           // ignore
         }
+      }
+
+      if (!audioUri) {
+        console.warn('[Player] No streamable audio URL found for:', track.title);
+        setIsBuffering(false);
+        setIsPlaying(false);
+        return;
       }
 
       const { sound } = await Audio.Sound.createAsync(

@@ -1,38 +1,30 @@
 import { Song } from '../types/music';
 import { Artist } from '../types/artist';
 import { Album } from '../types/album';
-import { jioSaavnApi } from './jiosaavn';
 
 export const itunesApi = {
-  async searchSongs(query: string, limit = 30): Promise<Song[]> {
+  async searchSongs(query: string, limit = 40): Promise<Song[]> {
     if (!query || !query.trim()) return [];
     try {
+      const clean = query.trim();
       const url = `https://itunes.apple.com/search?term=${encodeURIComponent(
-        query.trim()
+        clean
       )}&media=music&entity=song&limit=${limit}`;
       const response = await fetch(url);
       if (!response.ok) return [];
       const data = await response.json();
       if (!data.results || !Array.isArray(data.results)) return [];
 
-      const rawTracks = data.results.filter((item: any) => Boolean(item.trackName));
-      const songs: Song[] = [];
-
-      for (const item of rawTracks) {
-        const song = await this.mapSongWithFullAudio(item);
-        if (song.audioUrl) {
-          songs.push(song);
-        }
-      }
-
-      return songs;
+      return data.results
+        .filter((item: any) => Boolean(item.trackName) && Boolean(item.previewUrl))
+        .map((item: any) => this.mapSong(item));
     } catch (error) {
       console.warn('[iTunes API] searchSongs error:', error);
       return [];
     }
   },
 
-  async searchArtists(query: string, limit = 10): Promise<Artist[]> {
+  async searchArtists(query: string, limit = 15): Promise<Artist[]> {
     if (!query || !query.trim()) return [];
     try {
       const url = `https://itunes.apple.com/search?term=${encodeURIComponent(
@@ -57,7 +49,7 @@ export const itunesApi = {
     }
   },
 
-  async searchAlbums(query: string, limit = 10): Promise<Album[]> {
+  async searchAlbums(query: string, limit = 15): Promise<Album[]> {
     if (!query || !query.trim()) return [];
     try {
       const url = `https://itunes.apple.com/search?term=${encodeURIComponent(
@@ -84,7 +76,7 @@ export const itunesApi = {
     }
   },
 
-  async mapSongWithFullAudio(item: any): Promise<Song> {
+  mapSong(item: any): Song {
     const artwork = (item.artworkUrl100 || item.artworkUrl60 || '')
       .replace('100x100bb', '600x600bb')
       .replace('60x60bb', '600x600bb');
@@ -94,17 +86,6 @@ export const itunesApi = {
     const durationMs = item.trackTimeMillis || 210000;
     const durationSec = Math.floor(durationMs / 1000);
 
-    // Resolve full 320kbps audio from JioSaavn instead of using 30s preview
-    let fullAudioUrl = '';
-    try {
-      const match = await jioSaavnApi.searchSongs(`${trackName} ${artistName}`, 1);
-      if (match.length > 0 && match[0].audioUrl) {
-        fullAudioUrl = match[0].audioUrl;
-      }
-    } catch {
-      // ignore
-    }
-
     return {
       id: `itunes_${item.trackId}`,
       title: trackName,
@@ -113,14 +94,14 @@ export const itunesApi = {
       albumId: item.collectionId ? `itunes_album_${item.collectionId}` : undefined,
       albumTitle: item.collectionName || item.collectionCensoredName || 'Single',
       duration: durationSec > 0 ? durationSec : 210,
-      audioUrl: fullAudioUrl,
+      audioUrl: item.previewUrl || '',
       coverUrl:
         artwork ||
         'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
-      language: 'en',
+      language: 'all',
       genre: item.primaryGenreName || 'Pop',
       releaseDate: item.releaseDate ? item.releaseDate.substring(0, 4) : '2024',
-      bitrate: 320
+      bitrate: 256
     };
   }
 };
