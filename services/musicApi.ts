@@ -15,15 +15,14 @@ export const musicApi = {
     chillOut: Song[];
   }> {
     try {
-      // Parallel fetch across YouTube, JioSaavn, and iTunes with independent error boundaries
+      // Parallel fetch across JioSaavn queries (all returning 100% full-length 320kbps tracks)
       const [
         saavnTrending,
         saavnTamil,
         saavnNew,
         saavnBollywood,
+        saavnGlobalHits,
         saavnChill,
-        itunesTrending,
-        itunesGlobal,
         ytTamilTrending,
         ytGlobalTrending
       ] = await Promise.all([
@@ -31,10 +30,9 @@ export const musicApi = {
         jioSaavnApi.searchSongs('Top Tamil Hits Anirudh AR Rahman 2024', 25).catch(() => []),
         jioSaavnApi.searchSongs('Latest Indian and Global Hits 2024', 25).catch(() => []),
         jioSaavnApi.searchSongs('Top Bollywood Trending Hits Arijit Singh', 20).catch(() => []),
+        jioSaavnApi.searchSongs('Top English Pop Hits Taylor Swift The Weeknd Ed Sheeran', 25).catch(() => []),
         jioSaavnApi.searchSongs('Lo-Fi Chill Acoustic Melodies Instrumental', 20).catch(() => []),
-        itunesApi.searchSongs('Top Hits', 30).catch(() => []),
-        itunesApi.searchSongs('Pop Hits 2024', 25).catch(() => []),
-        youtubeApi.searchSongs('Top Trending Tamil Songs 2024 Anirudh', 12).catch(() => []),
+        youtubeApi.searchSongs('Top Trending Tamil Songs 2024 Anirudh', 10).catch(() => []),
         youtubeApi.searchSongs('Trending YouTube Music Hits 2024', 10).catch(() => [])
       ]);
 
@@ -42,24 +40,32 @@ export const musicApi = {
         const seen = new Set<string>();
         return list.filter((s) => {
           if (!s.audioUrl || seen.has(s.id)) return false;
+          // Discard 30-sec previews from the home feed so users only get full songs
+          if (
+            s.audioUrl.includes('apple.com') ||
+            s.audioUrl.includes('AudioPreview') ||
+            s.audioUrl.includes('mzstatic')
+          ) {
+            return false;
+          }
           seen.add(s.id);
           return true;
         });
       };
 
       const allTrending = dedupe([
+        ...CURATED_FEATURED_SONGS,
         ...saavnTrending,
-        ...itunesTrending,
         ...saavnTamil,
-        ...ytTamilTrending,
+        ...saavnGlobalHits,
         ...saavnBollywood,
-        ...itunesGlobal,
+        ...ytTamilTrending,
         ...ytGlobalTrending
       ]);
 
-      const featured = allTrending.slice(0, 14);
+      const featured = allTrending.slice(0, 15);
       const trending = allTrending.length > 0 ? allTrending : CURATED_FEATURED_SONGS;
-      const newDrops = dedupe([...saavnNew, ...itunesGlobal, ...ytTamilTrending, ...saavnTamil.slice(6)]);
+      const newDrops = dedupe([...saavnNew, ...saavnGlobalHits, ...ytTamilTrending, ...saavnTamil.slice(6)]);
       const chillTracks = dedupe([
         ...saavnChill,
         ...trending.filter((s) =>
@@ -67,11 +73,11 @@ export const musicApi = {
             (s.genre || '').includes(g) || (s.title || '').includes(g)
           )
         ),
-        ...CURATED_FEATURED_SONGS.filter((s) => s.genre.includes('Chill') || s.language === 'ja')
+        ...CURATED_FEATURED_SONGS.filter((s) => (s.genre || '').includes('Melody') || (s.genre || '').includes('Romantic'))
       ]);
 
       return {
-        featured: featured.length > 0 ? featured : CURATED_FEATURED_SONGS.slice(0, 6),
+        featured: featured.length > 0 ? featured : CURATED_FEATURED_SONGS.slice(0, 8),
         trending: trending.length > 0 ? trending : CURATED_FEATURED_SONGS,
         newReleases: newDrops.length > 0 ? newDrops : trending.slice(2, 16),
         chillOut: chillTracks.length > 0 ? chillTracks : CURATED_FEATURED_SONGS
@@ -79,12 +85,10 @@ export const musicApi = {
     } catch (error) {
       console.warn('[MusicApi] Feed fetch error, fallback to curated:', error);
       return {
-        featured: CURATED_FEATURED_SONGS.slice(0, 6),
+        featured: CURATED_FEATURED_SONGS.slice(0, 8),
         trending: CURATED_FEATURED_SONGS,
-        newReleases: CURATED_FEATURED_SONGS.slice(2, 6),
-        chillOut: CURATED_FEATURED_SONGS.filter(
-          (s) => s.language === 'ja' || s.genre.includes('Chill')
-        )
+        newReleases: CURATED_FEATURED_SONGS.slice(2, 10),
+        chillOut: CURATED_FEATURED_SONGS
       };
     }
   },
@@ -101,7 +105,7 @@ export const musicApi = {
     const clean = query.trim();
 
     try {
-      // Parallel search across JioSaavn, iTunes, YouTube, and MusicBrainz
+      // Parallel search: JioSaavn (full songs) prioritized over iTunes/YouTube
       const [
         saavnSongs,
         itunesSongs,
@@ -112,16 +116,16 @@ export const musicApi = {
         itunesAlbums
       ] = await Promise.all([
         jioSaavnApi.searchSongs(clean, 40, 1).catch(() => []),
-        itunesApi.searchSongs(clean, 40).catch(() => []),
-        youtubeApi.searchSongs(clean, 20).catch(() => []),
+        itunesApi.searchSongs(clean, 25).catch(() => []),
+        youtubeApi.searchSongs(clean, 15).catch(() => []),
         jioSaavnApi.searchArtists(clean, 15).catch(() => []),
         itunesApi.searchArtists(clean, 15).catch(() => []),
         jioSaavnApi.searchAlbums(clean, 15).catch(() => []),
         itunesApi.searchAlbums(clean, 15).catch(() => [])
       ]);
 
-      // Combine and deduplicate songs (JioSaavn full audio + iTunes global + YouTube)
-      const allSongs = [...saavnSongs, ...itunesSongs, ...ytSongs];
+      // Prioritize full JioSaavn songs first
+      const allSongs = [...saavnSongs, ...ytSongs, ...itunesSongs];
       const seenIds = new Set<string>();
       const seenTitles = new Set<string>();
       const deduplicatedSongs: Song[] = [];
@@ -144,7 +148,7 @@ export const musicApi = {
           a.name.toLowerCase().includes(clean.toLowerCase()) ||
           a.genres.some((g) => g.toLowerCase().includes(clean.toLowerCase()))
       );
-      const combinedArtists = [...saavnArtists, ...itunesArtists, ...matchedCuratedArtists];
+      const combinedArtists = [...saavnArtists, ...matchedCuratedArtists, ...itunesArtists];
       const artistMap = new Map<string, Artist>();
       for (const a of combinedArtists) {
         const key = a.name.toLowerCase().trim();
@@ -159,7 +163,7 @@ export const musicApi = {
           al.title.toLowerCase().includes(clean.toLowerCase()) ||
           al.artistName.toLowerCase().includes(clean.toLowerCase())
       );
-      const combinedAlbums = [...saavnAlbums, ...itunesAlbums, ...matchedCuratedAlbums];
+      const combinedAlbums = [...saavnAlbums, ...matchedCuratedAlbums, ...itunesAlbums];
       const albumMap = new Map<string, Album>();
       for (const al of combinedAlbums) {
         const key = al.title.toLowerCase().trim();
@@ -172,7 +176,7 @@ export const musicApi = {
         (s) =>
           s.title.toLowerCase().includes(clean.toLowerCase()) ||
           s.artistName.toLowerCase().includes(clean.toLowerCase()) ||
-          s.genre.toLowerCase().includes(clean.toLowerCase()) ||
+          (s.genre || '').toLowerCase().includes(clean.toLowerCase()) ||
           (clean.toLowerCase().includes('tamil') && s.language === 'ta')
       );
 
@@ -222,8 +226,8 @@ export const musicApi = {
           'Hindi Romantic Melodies',
           'Bollywood Party Songs'
         ],
-        en: ['Top Billboard Pop Hits 2024', 'Global Top 50 English Hits', 'Trending Pop Songs'],
-        english: ['Top Billboard Pop Hits 2024', 'Global Top 50 English Hits', 'Trending Pop Songs'],
+        en: ['Top Billboard Pop Hits 2024', 'Global Top 50 English Hits Taylor Swift The Weeknd', 'Trending Pop Songs Ed Sheeran'],
+        english: ['Top Billboard Pop Hits 2024', 'Global Top 50 English Hits Taylor Swift The Weeknd', 'Trending Pop Songs Ed Sheeran'],
         te: ['Top Telugu Hits DSP Thaman Sid Sriram', 'Tollywood Blockbusters 2024', 'Telugu Melody Songs'],
         telugu: ['Top Telugu Hits DSP Thaman Sid Sriram', 'Tollywood Blockbusters 2024', 'Telugu Melody Songs'],
         pa: ['Top Punjabi Hits Diljit Dosanjh Karan Aujla', 'Punjabi Party Songs 2024', 'Sidhu Moose Wala Hits'],
@@ -252,10 +256,8 @@ export const musicApi = {
 
       const queries = languageQueries[code] || [`${code} songs hits`];
 
-      // Fetch from YouTube, JioSaavn & iTunes in parallel
+      // Fetch full-length tracks from JioSaavn in parallel
       const fetchPromises: Promise<Song[]>[] = [
-        youtubeApi.searchSongs(queries[0], 20).catch(() => []),
-        itunesApi.searchSongs(queries[0], 25).catch(() => []),
         ...queries.map((q) => jioSaavnApi.searchSongs(q, 30).catch(() => []))
       ];
 
@@ -277,7 +279,8 @@ export const musicApi = {
         return finalSongs;
       }
 
-      return CURATED_FEATURED_SONGS;
+      const fallbackLanguage = CURATED_FEATURED_SONGS.filter((s) => s.language === code || code === 'all');
+      return fallbackLanguage.length > 0 ? fallbackLanguage : CURATED_FEATURED_SONGS;
     } catch (err) {
       console.warn('[MusicApi] getSongsByLanguage error:', err);
       return CURATED_FEATURED_SONGS;
@@ -334,7 +337,6 @@ export const musicApi = {
         melody,
         folk,
         classics,
-        itunesTamil,
         artists
       ] = await Promise.all([
         youtubeApi.searchSongs('Top Trending Tamil Songs Anirudh 2024', 15).catch(() => []),
@@ -347,7 +349,6 @@ export const musicApi = {
         jioSaavnApi.searchSongs('Tamil Soulful Melody Sid Sriram Haricharan', 20).catch(() => []),
         jioSaavnApi.searchSongs('Tamil Kuthu Folk Hits Gaana', 20).catch(() => []),
         jioSaavnApi.searchSongs('Tamil Evergreen 90s SPB Ilayaraja', 20).catch(() => []),
-        itunesApi.searchSongs('Tamil Top Hits Anirudh Rahman', 20).catch(() => []),
         jioSaavnApi.searchArtists('Anirudh AR Rahman Yuvan Harris Ilayaraja', 12).catch(() => [])
       ]);
 
@@ -355,6 +356,8 @@ export const musicApi = {
         const seen = new Set<string>();
         return songs.filter((s) => {
           if (!s.audioUrl || seen.has(s.id)) return false;
+          // Filter out preview URLs
+          if (s.audioUrl.includes('apple.com') || s.audioUrl.includes('AudioPreview')) return false;
           seen.add(s.id);
           s.language = 'ta';
           return true;
@@ -364,8 +367,8 @@ export const musicApi = {
       const fallbackTamil = CURATED_FEATURED_SONGS.filter((s) => s.language === 'ta');
 
       return {
-        trending: dedupe([...ytTrending, ...trending, ...itunesTamil]).length > 0 ? dedupe([...ytTrending, ...trending, ...itunesTamil]) : fallbackTamil,
-        hits: dedupe([...ytHits, ...hits, ...itunesTamil.slice(5)]).length > 0 ? dedupe([...ytHits, ...hits, ...itunesTamil.slice(5)]) : fallbackTamil,
+        trending: dedupe([...ytTrending, ...trending, ...fallbackTamil]).length > 0 ? dedupe([...ytTrending, ...trending, ...fallbackTamil]) : fallbackTamil,
+        hits: dedupe([...ytHits, ...hits, ...fallbackTamil]).length > 0 ? dedupe([...ytHits, ...hits, ...fallbackTamil]) : fallbackTamil,
         latest: dedupe(latest).length > 0 ? dedupe(latest) : fallbackTamil,
         movieHits: dedupe(movieHits).length > 0 ? dedupe(movieHits) : fallbackTamil,
         loveSongs: dedupe(loveSongs).length > 0 ? dedupe(loveSongs) : fallbackTamil,
