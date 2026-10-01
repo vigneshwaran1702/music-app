@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Audio, AVPlaybackStatus } from 'expo-av';
-import { Song, PlaybackMode, PlaybackStatus } from '../types/music';
+import { Song, PlaybackMode } from '../types/music';
 import { historyDb } from '../database/history';
 import { shuffleArray } from '../utils/filterMusic';
 import { jioSaavnApi } from '../api/jiosaavn';
-import { itunesApi } from '../api/itunes';
+import { CURATED_FEATURED_SONGS } from '../api/sources';
 
 interface PlayerContextType {
   currentTrack: Song | null;
@@ -53,6 +53,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const isSeekingRef = useRef<boolean>(false);
+  const currentTrackRef = useRef<Song | null>(null);
+  currentTrackRef.current = currentTrack;
 
   // Initialize audio mode
   useEffect(() => {
@@ -71,7 +73,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return () => {
       if (soundRef.current) {
-        soundRef.current.unloadAsync();
+        soundRef.current.unloadAsync().catch(() => {});
       }
     };
   }, []);
@@ -80,7 +82,6 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     if (typeof window !== 'undefined' && window.addEventListener) {
       const handleKeyDown = (e: KeyboardEvent) => {
-        // Ignore if user is typing in an input
         if (
           e.target instanceof HTMLInputElement ||
           e.target instanceof HTMLTextAreaElement ||
@@ -124,7 +125,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
     if (!status.isLoaded) {
       if (status.error) {
-        console.warn(`[Player] Error playing audio: ${status.error}`);
+        console.warn(`[Player] Playback error: ${status.error}`);
         setIsBuffering(false);
       }
       return;
@@ -142,18 +143,119 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Auto-advance when track finishes
     if (status.didJustFinish && !status.isLooping) {
-      handleTrackEnd();
+      handleTrackEnd(status);
     }
   };
 
-  const handleTrackEnd = async () => {
+  const handleTrackEnd = async (status?: any) => {
     if (playbackMode === 'repeat-one') {
       if (soundRef.current) {
         await soundRef.current.replayAsync();
       }
       return;
     }
+
+    // If audio finished too early (< 35s) while song duration was supposed to be > 60s,
+    // it was a 30s preview clip. Seamlessly resolve full song!
+    const playedSec = (status?.positionMillis || 0) / 1000;
+    const cur = currentTrackRef.current;
+    if (playedSec > 0 && playedSec < 35 && cur && (cur.duration || 0) > 60) {
+      const full = await resolveFullSong(cur, true);
+      if (full && full.audioUrl !== cur.audioUrl) {
+        console.log('[Player] Preview finished, continuing with resolved full track...');
+        await playTrack(full);
+        return;
+      }
+    }
+
     nextTrack();
+  };
+
+  /**
+   * Helper: Resolve full-length 320kbps audio from JioSaavn whenever a track
+   * has a preview clip, broken URL, or missing stream.
+   */
+  const resolveFullSong = async (track: Song, force = false): Promise<Song> => {
+    const isPreview =
+      force ||
+      !track.audioUrl ||
+      track.audioUrl.includes('apple.com') ||
+      track.audioUrl.includes('AudioPreview') ||
+      track.audioUrl.includes('mzstatic') ||
+      track.audioUrl.includes('youtube.com/watch') ||
+      track.id.startsWith('itunes_') ||
+      (track.duration !== undefined && track.duration <= 35);
+
+    if (!isPreview) {
+      return track;
+    }
+
+    try {
+      const cleanTitle = (track.title || '')
+        .replace(/\(From.*?\)/gi, '')
+        .replace(/\[.*?\]/g, '')
+        .replace(/\(feat.*?\)/gi, '')
+        .replace(/\(Tamil.*?\)/gi, '')
+        .trim();
+
+      const cleanArtist = (track.artistName || '')
+        .split(/[,&]/)[0]
+        .replace(/Music|Official|Channel/gi, '')
+        .trim();
+
+      const searchQuery = `${cleanTitle} ${cleanArtist}`.trim();
+      const timeoutPromise = new Promise<Song[]>((res) => setTimeout(() => res([]), 5000));
+      const saavnPromise = jioSaavnApi.searchSongs(searchQuery, 3);
+      const matches = await Promise.race([saavnPromise, timeoutPromise]);
+
+      if (matches && matches.length > 0 && matches[0].audioUrl) {
+        return {
+          ...track,
+          audioUrl: matches[0].audioUrl,
+          duration: matches[0].duration || track.duration,
+          coverUrl: track.coverUrl || matches[0].coverUrl,
+          bitrate: 320
+        };
+      }
+    } catch (e) {
+      console.warn('[Player] Full song resolution error:', e);
+    }
+
+    return track;
+  };
+
+  /**
+   * Safe Audio Loader with fallback bitrates
+   */
+  const loadAndPlaySound = async (uri: string): Promise<Audio.Sound | null> => {
+    const urlsToTry = [uri];
+
+    // If 320kbps URL, fallback to 160kbps and 96kbps if 320 is unavailable
+    if (uri.includes('_320.mp4')) {
+      urlsToTry.push(uri.replace('_320.mp4', '_160.mp4'));
+      urlsToTry.push(uri.replace('_320.mp4', '_96.mp4'));
+    } else if (uri.includes('_160.mp4')) {
+      urlsToTry.push(uri.replace('_160.mp4', '_96.mp4'));
+    }
+
+    for (const testUri of urlsToTry) {
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: testUri },
+          {
+            shouldPlay: true,
+            volume: volume,
+            isLooping: playbackMode === 'repeat-one'
+          },
+          onPlaybackStatusUpdate
+        );
+        return sound;
+      } catch (err) {
+        console.warn(`[Player] Failed to load ${testUri}, trying fallback...`, err);
+      }
+    }
+
+    return null;
   };
 
   const playTrack = async (track: Song, newQueue?: Song[]) => {
@@ -178,65 +280,47 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Save to history
       historyDb.addToHistory(track);
 
-      // Unload previous sound
+      // Unload previous sound cleanly
       if (soundRef.current) {
-        await soundRef.current.unloadAsync();
-        soundRef.current = null;
-      }
-
-      let audioUri = track.localPath || track.audioUrl;
-
-      // Try resolving full-length 320kbps audio from JioSaavn if currently on preview or missing
-      if (
-        !audioUri ||
-        audioUri.includes('apple.com') ||
-        audioUri.includes('AudioPreview') ||
-        audioUri.includes('youtube.com/watch')
-      ) {
         try {
-          const timeoutPromise = new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 1500));
-          const saavnPromise = jioSaavnApi.searchSongs(`${track.title} ${track.artistName}`, 1);
-          const fullMatch = await Promise.race([saavnPromise, timeoutPromise]);
-
-          if (fullMatch && fullMatch.length > 0 && fullMatch[0].audioUrl) {
-            audioUri = fullMatch[0].audioUrl;
-            track.audioUrl = fullMatch[0].audioUrl;
-            track.duration = fullMatch[0].duration;
-            setDuration(fullMatch[0].duration);
-          } else if (!audioUri) {
-            // If track had no audio at all, resolve from iTunes
-            const itunesMatch = await Promise.race([
-              itunesApi.searchSongs(`${track.title} ${track.artistName}`, 1),
-              timeoutPromise
-            ]);
-            if (itunesMatch && itunesMatch.length > 0 && itunesMatch[0].audioUrl) {
-              audioUri = itunesMatch[0].audioUrl;
-              track.audioUrl = itunesMatch[0].audioUrl;
-              track.duration = itunesMatch[0].duration;
-              setDuration(itunesMatch[0].duration);
-            }
-          }
+          await soundRef.current.unloadAsync();
         } catch {
           // ignore
         }
+        soundRef.current = null;
       }
 
+      // Guarantee full-length audio stream
+      const resolvedTrack = await resolveFullSong(track);
+      setCurrentTrack(resolvedTrack);
+      setDuration(resolvedTrack.duration || 210);
+
+      let audioUri = resolvedTrack.localPath || resolvedTrack.audioUrl;
+
+      // Fallback to verified curated track if still empty
       if (!audioUri) {
-        console.warn('[Player] No streamable audio URL found for:', track.title);
+        const fallback = CURATED_FEATURED_SONGS[0];
+        audioUri = fallback.audioUrl;
+      }
+
+      const sound = await loadAndPlaySound(audioUri);
+
+      if (!sound) {
+        // Last resort fallback: try first curated song so user never experiences silence
+        console.warn('[Player] All stream variants failed, falling back to curated backup track...');
+        const backupSound = await loadAndPlaySound(CURATED_FEATURED_SONGS[0].audioUrl);
+        if (backupSound) {
+          soundRef.current = backupSound;
+          setCurrentTrack(CURATED_FEATURED_SONGS[0]);
+          setIsPlaying(true);
+          setIsBuffering(false);
+          return;
+        }
+
         setIsBuffering(false);
         setIsPlaying(false);
         return;
       }
-
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: audioUri },
-        {
-          shouldPlay: true,
-          volume: volume,
-          isLooping: playbackMode === 'repeat-one'
-        },
-        onPlaybackStatusUpdate
-      );
 
       soundRef.current = sound;
       setIsPlaying(true);
