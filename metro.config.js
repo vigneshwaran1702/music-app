@@ -3,12 +3,18 @@ const { getDefaultConfig } = require('expo/metro-config');
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
+const originalEnhanceMiddleware = config.server?.enhanceMiddleware;
+
 config.server = {
   ...config.server,
-  enhanceMiddleware: (metroMiddleware) => {
+  enhanceMiddleware: (metroMiddleware, server) => {
+    const defaultMiddleware = originalEnhanceMiddleware
+      ? originalEnhanceMiddleware(metroMiddleware, server)
+      : metroMiddleware;
+
     return async (req, res, next) => {
       // CORS proxy for JioSaavn or external music APIs that lack browser CORS headers
-      if (req.url && req.url.startsWith('/api/saavn-proxy')) {
+      if (req.url && (req.url.startsWith('/api/saavn-proxy') || req.url.includes('/api/saavn-proxy'))) {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', '*');
@@ -56,7 +62,7 @@ config.server = {
         }
       }
 
-      return metroMiddleware(req, res, next);
+      return defaultMiddleware(req, res, next);
     };
   }
 };

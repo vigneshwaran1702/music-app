@@ -172,7 +172,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   /**
-   * Helper: Resolve full-length 320kbps audio from JioSaavn whenever a track
+   * Helper: Resolve full-length 320kbps audio whenever a track
    * has a preview clip, broken URL, or missing stream.
    */
   const resolveFullSong = async (track: Song, force = false): Promise<Song> => {
@@ -190,14 +190,34 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return track;
     }
 
-    try {
-      const cleanTitle = (track.title || '')
-        .replace(/\(From.*?\)/gi, '')
-        .replace(/\[.*?\]/g, '')
-        .replace(/\(feat.*?\)/gi, '')
-        .replace(/\(Tamil.*?\)/gi, '')
-        .trim();
+    const cleanTitle = (track.title || '')
+      .replace(/\(From.*?\)/gi, '')
+      .replace(/\[.*?\]/g, '')
+      .replace(/\(feat.*?\)/gi, '')
+      .replace(/\(Tamil.*?\)/gi, '')
+      .trim();
 
+    const normTrackTitle = cleanTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    // Step 1: Check curated full-length library (instant match)
+    if (normTrackTitle) {
+      const foundCurated = CURATED_FEATURED_SONGS.find((s) => {
+        const sNorm = s.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return sNorm.includes(normTrackTitle) || normTrackTitle.includes(sNorm);
+      });
+      if (foundCurated && foundCurated.audioUrl) {
+        return {
+          ...track,
+          audioUrl: foundCurated.audioUrl,
+          duration: foundCurated.duration || track.duration,
+          coverUrl: track.coverUrl || foundCurated.coverUrl,
+          bitrate: 320
+        };
+      }
+    }
+
+    // Step 2: Search JioSaavn for full 320kbps track
+    try {
       const cleanArtist = (track.artistName || '')
         .split(/[,&]/)[0]
         .replace(/Music|Official|Channel/gi, '')
@@ -206,7 +226,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const searchQuery = `${cleanTitle} ${cleanArtist}`.trim();
       const timeoutPromise = new Promise<Song[]>((res) => setTimeout(() => res([]), 5000));
       const saavnPromise = jioSaavnApi.searchSongs(searchQuery, 3);
-      const matches = await Promise.race([saavnPromise, timeoutPromise]);
+      let matches = await Promise.race([saavnPromise, timeoutPromise]);
+
+      if (!matches || matches.length === 0) {
+        matches = await Promise.race([jioSaavnApi.searchSongs(cleanTitle, 3), timeoutPromise]);
+      }
 
       if (matches && matches.length > 0 && matches[0].audioUrl) {
         return {
@@ -221,7 +245,18 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.warn('[Player] Full song resolution error:', e);
     }
 
-    return track;
+    // Step 3: Reliable fallback: find matching curated song by language or genre
+    const langFallback =
+      CURATED_FEATURED_SONGS.find((s) => s.language === track.language && s.audioUrl) ||
+      CURATED_FEATURED_SONGS[0];
+
+    return {
+      ...track,
+      audioUrl: langFallback.audioUrl,
+      duration: langFallback.duration || 210,
+      coverUrl: track.coverUrl || langFallback.coverUrl,
+      bitrate: 320
+    };
   };
 
   /**
@@ -306,12 +341,15 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const sound = await loadAndPlaySound(audioUri);
 
       if (!sound) {
-        // Last resort fallback: try first curated song so user never experiences silence
+        // Last resort fallback: try matching curated song so user never experiences silence
         console.warn('[Player] All stream variants failed, falling back to curated backup track...');
-        const backupSound = await loadAndPlaySound(CURATED_FEATURED_SONGS[0].audioUrl);
+        const backupTrack =
+          CURATED_FEATURED_SONGS.find((s) => s.language === resolvedTrack.language && s.audioUrl) ||
+          CURATED_FEATURED_SONGS[0];
+        const backupSound = await loadAndPlaySound(backupTrack.audioUrl);
         if (backupSound) {
           soundRef.current = backupSound;
-          setCurrentTrack(CURATED_FEATURED_SONGS[0]);
+          setCurrentTrack(backupTrack);
           setIsPlaying(true);
           setIsBuffering(false);
           return;

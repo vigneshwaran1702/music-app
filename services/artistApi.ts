@@ -38,17 +38,29 @@ export const artistApi = {
           musicBrainzApi.getArtistDetails(artist.name)
         ]);
 
+        const isFullSong = (s: Song) =>
+          Boolean(s.audioUrl) &&
+          !s.audioUrl.includes('apple.com') &&
+          !s.audioUrl.includes('AudioPreview') &&
+          !s.audioUrl.includes('mzstatic');
+
+        const matchingCurated = CURATED_FEATURED_SONGS.filter(
+          (s) =>
+            s.artistId === artistId ||
+            s.artistName.toLowerCase().includes(artist.name.toLowerCase())
+        );
+
         const songs: Song[] = [];
         const seen = new Set<string>();
-        for (const s of [...liveSaavn, ...liveYt, ...liveItunes]) {
-          if (s.audioUrl && !seen.has(s.id)) {
+
+        for (const s of [...matchingCurated, ...liveSaavn, ...liveYt]) {
+          if (isFullSong(s) && !seen.has(s.id)) {
             seen.add(s.id);
             songs.push(s);
           }
         }
 
-        const fallbackSongs = CURATED_FEATURED_SONGS.filter((s) => s.artistId === artistId);
-        const finalSongs = songs.length > 0 ? songs : fallbackSongs;
+        const finalSongs = songs.length > 0 ? songs : matchingCurated;
 
         return {
           ...artist,
@@ -84,18 +96,29 @@ export const artistApi = {
         musicBrainzApi.getArtistDetails(cleanName)
       ]);
 
+      const matchingCurated = CURATED_FEATURED_SONGS.filter((s) =>
+        s.artistName.toLowerCase().includes(cleanName.toLowerCase())
+      );
+
+      const isFullSong = (s: Song) =>
+        Boolean(s.audioUrl) &&
+        !s.audioUrl.includes('apple.com') &&
+        !s.audioUrl.includes('AudioPreview') &&
+        !s.audioUrl.includes('mzstatic');
+
       const songs: Song[] = [];
       const seen = new Set<string>();
-      for (const s of [...saavnSongs, ...liveYt, ...itunesSongs]) {
-        if (s.audioUrl && !seen.has(s.id)) {
+      for (const s of [...matchingCurated, ...saavnSongs, ...liveYt]) {
+        if (isFullSong(s) && !seen.has(s.id)) {
           seen.add(s.id);
           songs.push(s);
         }
       }
 
-      const primaryArtistName = songs[0]?.artistName || cleanName;
+      const finalSongs = songs.length > 0 ? songs : matchingCurated;
+      const primaryArtistName = finalSongs[0]?.artistName || cleanName;
       const primaryImage =
-        songs[0]?.coverUrl ||
+        finalSongs[0]?.coverUrl ||
         'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80';
 
       return {
@@ -104,7 +127,7 @@ export const artistApi = {
         imageUrl: primaryImage,
         genres: mbData?.genres?.length ? mbData.genres : ['Music', 'Vocal'],
         bio: mbData?.bio || `${primaryArtistName} - Popular recording artist and composer.`,
-        topTracks: songs,
+        topTracks: finalSongs,
         albumCount: 6
       };
     } catch (err) {

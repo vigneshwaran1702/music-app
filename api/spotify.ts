@@ -2,7 +2,7 @@ import { dbStorage } from '../database/storage';
 import { Song } from '../types/music';
 import { Playlist } from '../types/playlist';
 import { jioSaavnApi } from './jiosaavn';
-import { itunesApi } from './itunes';
+import { CURATED_FEATURED_SONGS } from './sources';
 
 const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
 const SPOTIFY_TOKEN_KEY = '@aura_music_spotify_token';
@@ -113,10 +113,14 @@ export const spotifyApi = {
         return saavnResults[0];
       }
 
-      // 2. Try iTunes global
-      const itunesResults = await itunesApi.searchSongs(query, 3);
-      if (itunesResults.length > 0 && itunesResults[0].audioUrl) {
-        return itunesResults[0];
+      // 2. Check Curated full-length library
+      const foundCurated = CURATED_FEATURED_SONGS.find(
+        (s) =>
+          s.title.toLowerCase().includes(trackName.toLowerCase()) ||
+          trackName.toLowerCase().includes(s.title.toLowerCase())
+      );
+      if (foundCurated && foundCurated.audioUrl) {
+        return foundCurated;
       }
     } catch (err) {
       console.warn('[Spotify API] resolvePlayableTrack error for', query, err);
