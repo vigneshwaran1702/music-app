@@ -3,6 +3,7 @@ import { Song } from '../types/music';
 import { Playlist } from '../types/playlist';
 import { jioSaavnApi } from './jiosaavn';
 import { CURATED_FEATURED_SONGS } from './sources';
+import { DEFAULT_PLAYLIST_COVER } from '../constants/artistImages';
 
 const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
 const SPOTIFY_TOKEN_KEY = '@aura_music_spotify_token';
@@ -91,7 +92,7 @@ export const spotifyApi = {
       return {
         name: data.name || 'Spotify Playlist',
         description: data.description || 'Imported from Spotify',
-        coverUrl: data.images?.[0]?.url || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
+        coverUrl: data.images?.[0]?.url || DEFAULT_PLAYLIST_COVER,
         tracks: rawTracks
       };
     } catch (error) {

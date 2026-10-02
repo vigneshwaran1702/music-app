@@ -23,12 +23,17 @@ export default function SongDetailScreen() {
     async function load() {
       if (!songId) return;
       setLoading(true);
+      if (currentTrack && currentTrack.id === songId) {
+        setSong(currentTrack);
+        setLoading(false);
+        return;
+      }
       const data = await musicApi.getSongById(songId);
       setSong(data);
       setLoading(false);
     }
     load();
-  }, [songId]);
+  }, [songId, currentTrack]);
 
   if (loading) {
     return (
@@ -42,7 +47,17 @@ export default function SongDetailScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.notFound}>
+          <Ionicons name="musical-note-outline" size={56} color="#a7a7a7" style={{ marginBottom: 16 }} />
           <Text style={styles.notFoundText}>Song not found</Text>
+          <Text style={{ color: '#a7a7a7', fontSize: 14, textAlign: 'center', marginTop: 8, marginBottom: 24 }}>
+            The song could not be loaded or may no longer be available.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: '#1ed760', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 24 }}
+            onPress={() => router.back()}
+          >
+            <Text style={{ color: '#000000', fontWeight: '700', fontSize: 14 }}>Go Back</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );

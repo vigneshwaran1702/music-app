@@ -1,6 +1,7 @@
 import { Song } from '../types/music';
 import { Artist } from '../types/artist';
 import { Album } from '../types/album';
+import { getArtistImage } from '../constants/artistImages';
 
 export const itunesApi = {
   async searchSongs(query: string, limit = 40): Promise<Song[]> {
@@ -38,8 +39,7 @@ export const itunesApi = {
       return data.results.map((item: any) => ({
         id: `itunes_artist_${item.artistId}`,
         name: item.artistName,
-        imageUrl:
-          'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
+        imageUrl: getArtistImage(item.artistName),
         genres: item.primaryGenreName ? [item.primaryGenreName] : ['Music'],
         bio: `${item.artistName} on Apple Music & iTunes.`
       }));

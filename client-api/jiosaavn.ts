@@ -4,6 +4,7 @@ import { Song } from '../types/music';
 import { Album } from '../types/album';
 import { Artist } from '../types/artist';
 import { APP_CONFIG } from '../constants/config';
+import { getArtistImage } from '../constants/artistImages';
 
 const DES_SECRET_KEY = '38346591';
 
@@ -178,6 +179,26 @@ export const jioSaavnApi = {
     return [];
   },
 
+  async getSongDetails(songId: string): Promise<Song | null> {
+    const cleanId = songId.replace('saavn_', '');
+    try {
+      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=song.getDetails&cc=in&_marker=0%3F_marker%3D0&_format=json&pids=${cleanId}`;
+      const data = await fetchDirectSaavn(url);
+      if (data && data[cleanId]) {
+        return this.mapDirectSong(data[cleanId]);
+      }
+      if (data && typeof data === 'object') {
+        const firstKey = Object.keys(data)[0];
+        if (firstKey && data[firstKey]?.song) {
+          return this.mapDirectSong(data[firstKey]);
+        }
+      }
+    } catch (err) {
+      console.warn('[JioSaavn API] getSongDetails error:', err);
+    }
+    return null;
+  },
+
   async getTrendingSongs(limit = 40): Promise<Song[]> {
     try {
       const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=content.getTrending&_format=json&_marker=0&api_version=4&ctx=android`;
@@ -256,7 +277,10 @@ export const jioSaavnApi = {
         return data.results.map((item: any) => ({
           id: `saavn_artist_${item.id || item.artistid || encodeURIComponent(item.name || item.title)}`,
           name: decodeHtmlEntities(item.name || item.title || 'Artist'),
-          imageUrl: enhanceArtworkUrl(item.image),
+          imageUrl: getArtistImage(
+            item.name || item.title || 'Artist',
+            enhanceArtworkUrl(item.image)
+          ),
           genres: [item.extra || item.role || 'Artist', item.language || 'Music'].filter(Boolean),
           bio: `${decodeHtmlEntities(item.name || item.title)} - Top recording artist on JioSaavn.`
         }));
@@ -305,19 +329,6 @@ export const jioSaavnApi = {
     return null;
   },
 
-  async getSongDetails(songId: string): Promise<Song | null> {
-    const cleanId = songId.replace('saavn_', '');
-    try {
-      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=song.getDetails&_format=json&_marker=0&api_version=4&ctx=android&pids=${cleanId}`;
-      const data = await fetchDirectSaavn(url);
-      if (data && data[cleanId]) {
-        return this.mapDirectSong(data[cleanId]);
-      }
-    } catch {
-      // ignore
-    }
-    return null;
-  },
 
   async getLyrics(songId: string): Promise<string> {
     if (!songId) return '';

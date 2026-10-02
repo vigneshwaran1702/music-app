@@ -205,7 +205,7 @@ export const CURATED_FEATURED_SONGS: Song[] = [
     "albumTitle": "Lover",
     "duration": 178,
     "audioUrl": "https://aac.saavncdn.com/243/cf6b522de1390996fdbe109298873c72_320.mp4",
-    "coverUrl": "https://c.saavncdn.com/243/Lover-English-2019-20190823000539-500x500.jpg",
+    "coverUrl": "https://c.saavncdn.com/228/Lover-English-2019-20250731010741-500x500.webp",
     "language": "en",
     "genre": "Pop / Synth-pop",
     "releaseDate": "2019-08-23"
@@ -1001,7 +1001,7 @@ export const CURATED_ARTISTS: Artist[] = [
     id: 'artist_anirudh',
     name: 'Anirudh Ravichander',
     bio: 'Renowned Indian composer and singer, known as the rockstar of Tamil cinema (Jailer, Leo, Vikram, Master).',
-    imageUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
+    imageUrl: 'https://c.saavncdn.com/artists/Anirudh_Ravichander_003_20260121134149_500x500.webp',
     monthlyListeners: 18500000,
     genres: ['Kollywood', 'Kuthu', 'EDM', 'Rock'],
     website: 'https://anirudhofficial.com'
@@ -1010,23 +1010,103 @@ export const CURATED_ARTISTS: Artist[] = [
     id: 'artist_arrahman',
     name: 'A.R. Rahman',
     bio: 'Academy Award and Grammy Award-winning Indian composer, producer, and the Mozart of Madras.',
-    imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
+    imageUrl: 'https://c.saavncdn.com/artists/AR_Rahman_002_20210120084455_500x500.webp',
     monthlyListeners: 24000000,
     genres: ['Soundtrack', 'Classical', 'Sufi', 'World']
+  },
+  {
+    id: 'artist_yuvan',
+    name: 'Yuvan Shankar Raja',
+    bio: 'Legendary Tamil music composer celebrated as the youth icon and BGM King of South Indian cinema.',
+    imageUrl: 'https://c.saavncdn.com/artists/Yuvan_Shankar_Raja_002_20180802174245_500x500.webp',
+    monthlyListeners: 15200000,
+    genres: ['Kollywood', 'BGM', 'Acoustic', 'Melody']
+  },
+  {
+    id: 'artist_harris',
+    name: 'Harris Jayaraj',
+    bio: 'Master of melodic orchestration and chart-busting evergreen romantic soundtracks in Tamil cinema.',
+    imageUrl: 'https://c.saavncdn.com/artists/Harris_Jayaraj_002_20230718071330_500x500.webp',
+    monthlyListeners: 12800000,
+    genres: ['Melody', 'Kollywood', 'Pop', 'Acoustic']
+  },
+  {
+    id: 'artist_ilayaraja',
+    name: 'Ilaiyaraaja',
+    bio: 'The Maestro of Indian music who revolutionized film music and composed over 7,000 songs.',
+    imageUrl: 'https://c.saavncdn.com/artists/Ilaiyaraaja_001_20251020081419_500x500.webp',
+    monthlyListeners: 14500000,
+    genres: ['Classical', 'Carnatic', 'Folk', 'Symphonic']
+  },
+  {
+    id: 'artist_sidsriram',
+    name: 'Sid Sriram',
+    bio: 'Critically acclaimed Carnatic and playback singer known for soulful Indian and global crossover melodies.',
+    imageUrl: 'https://c.saavncdn.com/artists/Sid_Sriram_005_20240425180600_500x500.webp',
+    monthlyListeners: 16700000,
+    genres: ['Carnatic', 'Soul', 'R&B', 'Kollywood']
+  },
+  {
+    id: 'artist_santhosh',
+    name: 'Santhosh Narayanan',
+    bio: 'Visionary composer blending rustic Indian folk rhythms with contemporary global fusion.',
+    imageUrl: 'https://c.saavncdn.com/artists/Santhosh_Narayanan_002_20250527101718_500x500.webp',
+    monthlyListeners: 11200000,
+    genres: ['Kollywood', 'Folk', 'Indie', 'Alternative']
+  },
+  {
+    id: 'artist_spb',
+    name: 'S. P. Balasubrahmanyam',
+    bio: 'Legendary Indian playback singer who recorded over 40,000 songs across 16 Indian languages.',
+    imageUrl: 'https://c.saavncdn.com/artists/S_P_Balasubrahmanyam_500x500.webp',
+    monthlyListeners: 19800000,
+    genres: ['Classic', 'Melody', 'Carnatic', 'Soundtrack']
   },
   {
     id: 'artist_arijit',
     name: 'Arijit Singh',
     bio: 'One of the most celebrated Indian playback singers, revered for soulful melodies and timeless ballads.',
-    imageUrl: 'https://c.saavncdn.com/047/Jawan-Hindi-2023-20230921190854-500x500.jpg',
+    imageUrl: 'https://c.saavncdn.com/artists/Arijit_Singh_004_20241118063717_500x500.webp',
     monthlyListeners: 38000000,
     genres: ['Bollywood', 'Romantic', 'Classical', 'Sufi']
+  },
+  {
+    id: 'artist_shreya',
+    name: 'Shreya Ghoshal',
+    bio: 'India’s queen of melody, five-time National Film Award winner with a mesmerizing vocal range.',
+    imageUrl: 'https://c.saavncdn.com/artists/Shreya_Ghoshal_007_20241101074144_500x500.webp',
+    monthlyListeners: 29500000,
+    genres: ['Melody', 'Romantic', 'Bollywood', 'Classical']
+  },
+  {
+    id: 'artist_diljit',
+    name: 'Diljit Dosanjh',
+    bio: 'Global Punjabi music superstar who made history at Coachella and sells out stadium tours worldwide.',
+    imageUrl: 'https://c.saavncdn.com/artists/Diljit_Dosanjh_005_20231025073054_500x500.webp',
+    monthlyListeners: 22000000,
+    genres: ['Punjabi', 'Bhangra', 'Pop', 'Hip-Hop']
+  },
+  {
+    id: 'artist_sushin',
+    name: 'Sushin Shyam',
+    bio: 'Leading new-wave Malayalam and South Indian composer behind massive viral hits and blockbusters.',
+    imageUrl: 'https://c.saavncdn.com/artists/Sushin_Shyam_002_20250707125538_500x500.webp',
+    monthlyListeners: 8900000,
+    genres: ['Electronic', 'Folk', 'Hip Hop', 'Soundtrack']
+  },
+  {
+    id: 'artist_saiabhyankkar',
+    name: 'Sai Abhyankkar',
+    bio: 'Sensational breakout South Indian indie artist and composer of the viral sensation Katchi Sera.',
+    imageUrl: 'https://c.saavncdn.com/artists/Sai_Abhyankkar_003_20250707122433_500x500.webp',
+    monthlyListeners: 6400000,
+    genres: ['Indie Pop', 'Kollywood', 'Fusion']
   },
   {
     id: 'artist_taylorswift',
     name: 'Taylor Swift',
     bio: 'Global music icon, 14-time Grammy Award winner, and one of the highest-selling artists of all time.',
-    imageUrl: 'https://c.saavncdn.com/243/Lover-English-2019-20190823000539-500x500.jpg',
+    imageUrl: 'https://c.saavncdn.com/artists/Taylor_Swift_003_20200226074119_500x500.webp',
     monthlyListeners: 105000000,
     genres: ['Pop', 'Synth-pop', 'Folk', 'Country']
   },
@@ -1034,7 +1114,7 @@ export const CURATED_ARTISTS: Artist[] = [
     id: 'artist_theweeknd',
     name: 'The Weeknd',
     bio: 'Canadian record-breaking artist renowned for his signature R&B, dark pop, and synthwave anthems.',
-    imageUrl: 'https://c.saavncdn.com/820/Blinding-Lights-English-2020-20200912094411-500x500.jpg',
+    imageUrl: 'https://c.saavncdn.com/artists/The_Weeknd_002_20241003071400_500x500.webp',
     monthlyListeners: 110000000,
     genres: ['R&B', 'Pop', 'Synthwave']
   },
@@ -1042,9 +1122,33 @@ export const CURATED_ARTISTS: Artist[] = [
     id: 'artist_edsheeran',
     name: 'Ed Sheeran',
     bio: 'English singer-songwriter known for chart-topping pop acoustic ballads and global arena tours.',
-    imageUrl: 'https://c.saavncdn.com/126/Shape-of-You-English-2017-500x500.jpg',
+    imageUrl: 'https://c.saavncdn.com/artists/Ed_Sheeran_002_20250625073038_500x500.webp',
     monthlyListeners: 82000000,
     genres: ['Pop', 'Acoustic', 'Folk Pop']
+  },
+  {
+    id: 'artist_billie',
+    name: 'Billie Eilish',
+    bio: 'Multiple Grammy and Oscar-winning global superstar known for intimate vocals and genre-bending production.',
+    imageUrl: 'https://c.saavncdn.com/artists/Billie_Eilish_20190211151539_500x500.webp',
+    monthlyListeners: 94000000,
+    genres: ['Alt-Pop', 'Electropop', 'Dark Pop']
+  },
+  {
+    id: 'artist_dualipa',
+    name: 'Dua Lipa',
+    bio: 'Global pop powerhouse bringing modern disco and dance-pop to millions worldwide.',
+    imageUrl: 'https://c.saavncdn.com/artists/Dua_Lipa_004_20231120090922_500x500.webp',
+    monthlyListeners: 78000000,
+    genres: ['Pop', 'Disco', 'Dance-Pop']
+  },
+  {
+    id: 'artist_coldplay',
+    name: 'Coldplay',
+    bio: 'One of the world’s biggest bands, known for anthemic stadium rock, vibrant spectacles, and timeless hits.',
+    imageUrl: 'https://c.saavncdn.com/artists/Coldplay_002_20241003070447_500x500.webp',
+    monthlyListeners: 88000000,
+    genres: ['Alternative Rock', 'Pop Rock', 'Stadium Rock']
   }
 ];
 
@@ -1078,5 +1182,35 @@ export const CURATED_ALBUMS: Album[] = [
     genre: 'Kollywood',
     releaseDate: '2022-06-03',
     trackCount: 5
+  },
+  {
+    id: 'album_mersal',
+    title: 'Mersal (Original Soundtrack)',
+    artistId: 'artist_arrahman',
+    artistName: 'A.R. Rahman',
+    coverUrl: 'https://c.saavncdn.com/492/Mersal-Tamil-2017-20170820120559-500x500.webp',
+    genre: 'Kollywood',
+    releaseDate: '2017-08-20',
+    trackCount: 4
+  },
+  {
+    id: 'album_maari2',
+    title: 'Maari 2 (Original Soundtrack)',
+    artistId: 'artist_yuvan',
+    artistName: 'Yuvan Shankar Raja',
+    coverUrl: 'https://c.saavncdn.com/276/Maari-2-Tamil-2018-20260203193952-500x500.webp',
+    genre: 'Kollywood',
+    releaseDate: '2018-11-28',
+    trackCount: 3
+  },
+  {
+    id: 'album_afterhours',
+    title: 'After Hours',
+    artistId: 'artist_theweeknd',
+    artistName: 'The Weeknd',
+    coverUrl: 'https://c.saavncdn.com/820/Blinding-Lights-English-2020-20200912094411-500x500.jpg',
+    genre: 'Synthwave / R&B',
+    releaseDate: '2020-03-20',
+    trackCount: 14
   }
 ];

@@ -40,7 +40,17 @@ export default function AlbumDetailScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.notFound}>
+          <Ionicons name="disc-outline" size={56} color="#a7a7a7" style={{ marginBottom: 16 }} />
           <Text style={styles.notFoundText}>Album not found</Text>
+          <Text style={{ color: '#a7a7a7', fontSize: 14, textAlign: 'center', marginTop: 8, marginBottom: 24 }}>
+            The album could not be loaded or may no longer be available.
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: '#1ed760', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 24 }}
+            onPress={() => router.push('/albums')}
+          >
+            <Text style={{ color: '#000000', fontWeight: '700', fontSize: 14 }}>Browse Albums</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );

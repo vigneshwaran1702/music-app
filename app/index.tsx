@@ -60,6 +60,16 @@ export default function HomeScreen() {
     (s) => s.language === 'ta' || (s.genre || '').toLowerCase().includes('kollywood')
   );
 
+  const anirudhSongs = trending.filter(
+    (s) => s.artistName.toLowerCase().includes('anirudh') || s.artistId === 'artist_anirudh'
+  );
+  const rahmanSongs = trending.filter(
+    (s) => s.artistName.toLowerCase().includes('rahman') || s.artistId === 'artist_arrahman'
+  );
+  const jailerSongs = trending.filter(
+    (s) => (s.albumTitle || '').toLowerCase().includes('jailer') || s.albumId === 'album_jailer'
+  );
+
   const quickAccessItems = [
     {
       id: 'qa_liked',
@@ -83,7 +93,7 @@ export default function HomeScreen() {
       icon: 'flash',
       bg: '#eab308',
       route: '/artist/artist_anirudh',
-      songs: trending
+      songs: anirudhSongs.length > 0 ? anirudhSongs : trending
     },
     {
       id: 'qa_arrahman',
@@ -91,7 +101,7 @@ export default function HomeScreen() {
       icon: 'musical-notes',
       bg: '#0284c7',
       route: '/artist/artist_arrahman',
-      songs: trending
+      songs: rahmanSongs.length > 0 ? rahmanSongs : trending
     },
     {
       id: 'qa_history',
@@ -115,7 +125,7 @@ export default function HomeScreen() {
       icon: 'disc',
       bg: '#b91c1c',
       route: '/album/album_jailer',
-      songs: trending
+      songs: jailerSongs.length > 0 ? jailerSongs : trending
     },
     {
       id: 'qa_chill',

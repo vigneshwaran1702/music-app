@@ -152,6 +152,12 @@ function AppLayout() {
               }}
             />
             <Stack.Screen
+              name="playlist/[playlistId]"
+              options={{
+                title: 'Playlist'
+              }}
+            />
+            <Stack.Screen
               name="favorites"
               options={{
                 title: 'Liked Songs'

@@ -16,6 +16,7 @@ import { favoritesDb } from '../database/favorites';
 import { historyDb } from '../database/history';
 import { downloadsDb, DownloadedRecord } from '../database/downloads';
 import { Playlist } from '../types/playlist';
+import { getPlaylistCover } from '../constants/artistImages';
 import { Song } from '../types/music';
 import { SongCard } from '../components/SongCard';
 import { CreatePlaylistModal } from '../components/CreatePlaylistModal';
@@ -162,10 +163,10 @@ export default function LibraryScreen() {
                       styles.playlistTile,
                       isDesktop ? styles.playlistTileDesktop : isTablet ? styles.playlistTileTablet : styles.playlistTileMobile
                     ]}
-                    onPress={() => router.push('/playlists')}
+                    onPress={() => router.push(`/playlist/${pl.id}` as any)}
                     activeOpacity={0.8}
                   >
-                    <Image source={{ uri: pl.coverUrl }} style={styles.playlistImg} />
+                    <Image source={{ uri: getPlaylistCover(pl) }} style={styles.playlistImg} />
                     <Text numberOfLines={1} style={styles.playlistTileTitle}>
                       {pl.title}
                     </Text>
