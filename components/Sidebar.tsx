@@ -286,9 +286,7 @@ const styles = StyleSheet.create({
   brandLogo: {
     width: 38,
     height: 38,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#06b6d4'
+    borderRadius: 19
   },
   brandName: {
     fontSize: 16,

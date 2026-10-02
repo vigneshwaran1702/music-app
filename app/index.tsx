@@ -472,9 +472,7 @@ const styles = StyleSheet.create({
   mobileLogo: {
     width: 32,
     height: 32,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: '#06b6d4'
+    borderRadius: 16
   },
   mobileBrandText: {
     fontSize: 16,
