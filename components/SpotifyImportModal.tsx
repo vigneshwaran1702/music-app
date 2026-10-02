@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { spotifyApi, SpotifyUserProfile } from '../api/spotify';
+import { spotifyApi, SpotifyUserProfile } from '../client-api/spotify';
 import { playlistsDb } from '../database/playlists';
 import { Song } from '../types/music';
 

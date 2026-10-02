@@ -1,6 +1,6 @@
-import { CURATED_ALBUMS, CURATED_FEATURED_SONGS } from '../api/sources';
-import { jioSaavnApi } from '../api/jiosaavn';
-import { itunesApi } from '../api/itunes';
+import { CURATED_ALBUMS, CURATED_FEATURED_SONGS } from '../client-api/sources';
+import { jioSaavnApi } from '../client-api/jiosaavn';
+import { itunesApi } from '../client-api/itunes';
 import { Album } from '../types/album';
 import { Song } from '../types/music';
 

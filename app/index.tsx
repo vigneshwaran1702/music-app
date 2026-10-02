@@ -19,7 +19,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import { historyDb } from '../database/history';
 import { favoritesDb } from '../database/favorites';
 import { Song } from '../types/music';
-import { CURATED_ARTISTS, CURATED_ALBUMS } from '../api/sources';
+import { CURATED_ARTISTS, CURATED_ALBUMS } from '../client-api/sources';
 import { SongCard } from '../components/SongCard';
 import { ArtistCard } from '../components/ArtistCard';
 import { AlbumCard } from '../components/AlbumCard';
