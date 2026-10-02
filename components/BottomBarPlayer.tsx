@@ -27,6 +27,8 @@ export const BottomBarPlayer: React.FC = () => {
     nextTrack,
     previousTrack,
     seekTo,
+    forward,
+    backward,
     setVolumeLevel,
     togglePlaybackMode,
     toggleRightPanel,
@@ -39,15 +41,16 @@ export const BottomBarPlayer: React.FC = () => {
 
   if (!currentTrack) return null;
 
-  const progressPercent = duration > 0 ? Math.min(100, (position / duration) * 100) : 0;
+  const totalDuration = duration || currentTrack.duration || 180;
+  const progressPercent = totalDuration > 0 ? Math.min(100, (position / totalDuration) * 100) : 0;
 
   const handleProgressBarClick = (e: any) => {
-    if (Platform.OS === 'web' && duration > 0) {
+    if (Platform.OS === 'web' && totalDuration > 0) {
       const rect = e.currentTarget?.getBoundingClientRect?.();
-      if (rect) {
+      if (rect && rect.width > 0) {
         const clickX = e.clientX - rect.left;
         const width = rect.width;
-        const newSec = Math.max(0, Math.min(duration, (clickX / width) * duration));
+        const newSec = Math.max(0, Math.min(totalDuration, (clickX / width) * totalDuration));
         seekTo(newSec);
       }
     }
@@ -112,9 +115,14 @@ export const BottomBarPlayer: React.FC = () => {
             {playbackMode === 'shuffle' && <View style={styles.activeDot} />}
           </TouchableOpacity>
 
-          {/* Previous */}
+          {/* Previous Track */}
           <TouchableOpacity style={styles.ctrlBtn} onPress={previousTrack}>
-            <Ionicons name="play-skip-back" size={20} color="#b3b3b3" />
+            <Ionicons name="play-skip-back" size={18} color="#b3b3b3" />
+          </TouchableOpacity>
+
+          {/* Backward 10s */}
+          <TouchableOpacity style={styles.ctrlBtn} onPress={() => backward(10)}>
+            <Ionicons name="play-back" size={18} color="#e0e0e0" />
           </TouchableOpacity>
 
           {/* Play/Pause Button (Spotify White Circle) */}
@@ -130,9 +138,14 @@ export const BottomBarPlayer: React.FC = () => {
             />
           </TouchableOpacity>
 
-          {/* Next */}
+          {/* Forward 10s */}
+          <TouchableOpacity style={styles.ctrlBtn} onPress={() => forward(10)}>
+            <Ionicons name="play-forward" size={18} color="#e0e0e0" />
+          </TouchableOpacity>
+
+          {/* Next Track */}
           <TouchableOpacity style={styles.ctrlBtn} onPress={nextTrack}>
-            <Ionicons name="play-skip-forward" size={20} color="#b3b3b3" />
+            <Ionicons name="play-skip-forward" size={18} color="#b3b3b3" />
           </TouchableOpacity>
 
           {/* Repeat Toggle */}

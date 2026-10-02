@@ -24,6 +24,8 @@ interface PlayerContextType {
   nextTrack: () => Promise<void>;
   previousTrack: () => Promise<void>;
   seekTo: (seconds: number) => Promise<void>;
+  forward: (seconds?: number) => Promise<void>;
+  backward: (seconds?: number) => Promise<void>;
   setVolumeLevel: (level: number) => Promise<void>;
   togglePlaybackMode: () => void;
   addToQueue: (track: Song) => void;
@@ -155,19 +157,44 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    // If audio finished too early (< 35s) while song duration was supposed to be > 60s,
-    // it was a 30s preview clip. Seamlessly resolve full song!
-    const playedSec = (status?.positionMillis || 0) / 1000;
-    const cur = currentTrackRef.current;
-    if (playedSec > 0 && playedSec < 35 && cur && (cur.duration || 0) > 60) {
-      const full = await resolveFullSong(cur, true);
-      if (full && full.audioUrl !== cur.audioUrl) {
-        console.log('[Player] Preview finished, continuing with resolved full track...');
-        await playTrack(full);
-        return;
+    const curPos = (status?.positionMillis ?? position * 1000) / 1000;
+    const curDur = (status?.durationMillis ?? duration * 1000) / 1000;
+
+    // A track has only truly finished if current position is within 4 seconds of duration
+    // OR has reached at least 95% of the total track length.
+    // If it stopped earlier, it was a network stall, buffer pause, or preview clip!
+    const isActuallyAtEnd = curDur > 10 && (curPos >= curDur - 4 || curPos >= curDur * 0.95);
+
+    if (!isActuallyAtEnd) {
+      console.warn(
+        `[Player] Premature pause/stall detected at ${curPos.toFixed(1)}s / ${curDur.toFixed(1)}s. Preventing unexpected skip!`
+      );
+
+      // Attempt seamless resume if playback was active
+      if (soundRef.current && isPlaying) {
+        try {
+          await soundRef.current.playAsync();
+          return;
+        } catch {
+          // If resume fails, continue with recovery
+        }
       }
+
+      // If audio finished too early (< 35s) while song duration was supposed to be > 60s,
+      // it was an unexpected cut. Seamlessly resolve full song!
+      const cur = currentTrackRef.current;
+      if (cur && (cur.duration || 0) > 60) {
+        const full = await resolveFullSong(cur, true);
+        if (full && full.audioUrl !== cur.audioUrl) {
+          console.log('[Player] Preview finished, continuing with resolved full track...');
+          await playTrack(full);
+          return;
+        }
+      }
+      return;
     }
 
+    // Only advance when the song actually played to the end!
     nextTrack();
   };
 
@@ -399,9 +426,17 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           await soundRef.current.playAsync();
           setIsPlaying(true);
         }
+      } else {
+        // If sound was unloaded or not ready, re-initialize playback
+        if (currentTrack) {
+          await playTrack(currentTrack);
+        }
       }
     } catch (error) {
-      console.warn('[Player] togglePlayPause error:', error);
+      console.warn('[Player] togglePlayPause error, attempting restart:', error);
+      if (currentTrack) {
+        await playTrack(currentTrack);
+      }
     }
   };
 
@@ -446,16 +481,34 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const seekTo = async (seconds: number) => {
-    if (!soundRef.current) return;
+    if (!soundRef.current) {
+      setPosition(seconds);
+      return;
+    }
     try {
       isSeekingRef.current = true;
-      setPosition(seconds);
-      await soundRef.current.setPositionAsync(Math.floor(seconds * 1000));
+      const totalDur = duration || (currentTrack?.duration || 300);
+      const targetSec = Math.max(0, Math.min(totalDur, seconds));
+      setPosition(targetSec);
+      await soundRef.current.setPositionAsync(Math.floor(targetSec * 1000));
     } catch (error) {
       console.warn('[Player] seek error:', error);
     } finally {
-      isSeekingRef.current = false;
+      setTimeout(() => {
+        isSeekingRef.current = false;
+      }, 350);
     }
+  };
+
+  const forward = async (seconds = 10) => {
+    const totalDur = duration || (currentTrack?.duration || 300);
+    const target = Math.min(totalDur, position + seconds);
+    await seekTo(target);
+  };
+
+  const backward = async (seconds = 10) => {
+    const target = Math.max(0, position - seconds);
+    await seekTo(target);
   };
 
   const setVolumeLevel = async (level: number) => {
@@ -532,6 +585,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         nextTrack,
         previousTrack,
         seekTo,
+        forward,
+        backward,
         setVolumeLevel,
         togglePlaybackMode,
         addToQueue,
