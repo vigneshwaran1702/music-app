@@ -7,6 +7,8 @@ import { getArtistImage } from '../constants/artistImages';
 import { Song } from '../types/music';
 import { Artist } from '../types/artist';
 import { Album } from '../types/album';
+import { dbStorage } from '../database/storage';
+import { deduplicateSongs } from '../utils/filterMusic';
 
 export const musicApi = {
   async getFeed(): Promise<{
@@ -224,11 +226,39 @@ export const musicApi = {
   async getSongById(songId: string): Promise<Song | null> {
     if (!songId) return null;
 
-    // 1. Check verified curated songs catalog
+    // 1. Check verified curated songs catalog (instant hit)
     const curated = CURATED_FEATURED_SONGS.find((s) => s.id === songId);
     if (curated) return curated;
 
-    // 2. Check JioSaavn by ID
+    // 2. Check local stored databases (playlists, favorites, downloads, history)
+    try {
+      const [playlists, favorites, downloads, history] = await Promise.all([
+        dbStorage.getItem<any[]>(dbStorage.KEYS.PLAYLISTS, []),
+        dbStorage.getItem<any[]>(dbStorage.KEYS.FAVORITES, []),
+        dbStorage.getItem<any[]>(dbStorage.KEYS.DOWNLOADS, []),
+        dbStorage.getItem<any[]>(dbStorage.KEYS.HISTORY, [])
+      ]);
+
+      const inFav = favorites?.find((s: Song) => s.id === songId);
+      if (inFav) return inFav;
+
+      const inDl = downloads?.find((s: Song) => s.id === songId);
+      if (inDl) return inDl;
+
+      const inHist = history?.find((s: Song) => s.id === songId);
+      if (inHist) return inHist;
+
+      if (playlists && Array.isArray(playlists)) {
+        for (const pl of playlists) {
+          const inPl = pl.tracks?.find((s: Song) => s.id === songId);
+          if (inPl) return inPl;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // 3. Check JioSaavn by direct song ID
     if (songId.startsWith('saavn_')) {
       const cleanId = songId.replace('saavn_', '');
       try {
@@ -239,7 +269,7 @@ export const musicApi = {
       }
     }
 
-    // 3. Fallback search by cleaned song query
+    // 4. Fallback search by cleaned song query on JioSaavn
     try {
       const cleanName = decodeURIComponent(
         songId
@@ -247,14 +277,155 @@ export const musicApi = {
           .replace('itunes_', '')
           .replace('yt_', '')
           .replace(/_/g, ' ')
-      );
-      const results = await jioSaavnApi.searchSongs(cleanName, 5);
-      if (results.length > 0) return results[0];
+      ).trim();
+      if (cleanName) {
+        const results = await jioSaavnApi.searchSongs(cleanName, 10);
+        const exact = results.find((s) => s.id === songId);
+        if (exact) return exact;
+        if (results.length > 0) return results[0];
+      }
     } catch {
       // ignore
     }
 
-    return null;
+    // 5. Fallback: check YouTube & iTunes
+    try {
+      const cleanName = decodeURIComponent(
+        songId.replace(/[^a-zA-Z0-9 ]/g, ' ')
+      ).trim();
+      if (cleanName) {
+        const [ytSongs, itunesSongs] = await Promise.all([
+          youtubeApi.searchSongs(cleanName, 5).catch(() => []),
+          itunesApi.searchSongs(cleanName, 5).catch(() => [])
+        ]);
+        if (ytSongs.length > 0) return ytSongs[0];
+        if (itunesSongs.length > 0) return itunesSongs[0];
+      }
+    } catch {
+      // ignore
+    }
+
+    // 6. Safe curated fallback
+    return CURATED_FEATURED_SONGS[0] || null;
+  },
+
+  async getSongsForPlaylistName(playlistName: string, limit = 35): Promise<Song[]> {
+    if (!playlistName || !playlistName.trim()) {
+      return deduplicateSongs(CURATED_FEATURED_SONGS, 'ta').slice(0, limit);
+    }
+
+    const lower = playlistName.toLowerCase();
+
+    // Route separated language playlists to language-isolated tracks
+    const languageKeywords: Record<string, string> = {
+      tamil: 'ta',
+      kollywood: 'ta',
+      hindi: 'hi',
+      bollywood: 'hi',
+      english: 'en',
+      billboard: 'en',
+      telugu: 'te',
+      tollywood: 'te',
+      malayalam: 'ml',
+      mollywood: 'ml',
+      punjabi: 'pa',
+      bhangra: 'pa',
+      kannada: 'kn',
+      sandalwood: 'kn',
+      korean: 'ko',
+      kpop: 'ko',
+      'k-pop': 'ko',
+      spanish: 'es',
+      latin: 'es',
+      reggaeton: 'es',
+      japanese: 'ja',
+      jpop: 'ja',
+      'j-pop': 'ja',
+      anime: 'ja'
+    };
+
+    for (const [kw, langCode] of Object.entries(languageKeywords)) {
+      if (lower.includes(kw)) {
+        const langTracks = await this.getSongsByLanguage(langCode, limit + 10);
+        return deduplicateSongs(langTracks, langCode).slice(0, limit);
+      }
+    }
+
+    const clean = playlistName
+      .replace(/pl_/gi, '')
+      .replace(/_/g, ' ')
+      .replace(/hits/gi, '')
+      .replace(/anthems/gi, '')
+      .replace(/melodies/gi, '')
+      .replace(/playlist/gi, '')
+      .trim();
+
+    const searchQueries = [
+      playlistName,
+      clean,
+      `${clean} hits`,
+      `${clean} songs`
+    ].filter((q) => q.length > 1);
+
+    const isFullSong = (s: Song) =>
+      Boolean(s.audioUrl) &&
+      !s.audioUrl.includes('apple.com') &&
+      !s.audioUrl.includes('AudioPreview') &&
+      !s.audioUrl.includes('mzstatic');
+
+    const seen = new Set<string>();
+    const songs: Song[] = [];
+
+    // 1. Check curated matching tracks first
+    const lowerClean = clean.toLowerCase();
+    const curatedMatches = CURATED_FEATURED_SONGS.filter(
+      (s) =>
+        s.title.toLowerCase().includes(lowerClean) ||
+        s.artistName.toLowerCase().includes(lowerClean) ||
+        (s.albumTitle && s.albumTitle.toLowerCase().includes(lowerClean)) ||
+        (s.genre && s.genre.toLowerCase().includes(lowerClean)) ||
+        (lowerClean.includes('tamil') && s.language === 'ta') ||
+        (lowerClean.includes('hindi') && s.language === 'hi') ||
+        (lowerClean.includes('english') && s.language === 'en') ||
+        (lowerClean.includes('romantic') && (s.genre || '').includes('Melody'))
+    );
+
+    for (const s of curatedMatches) {
+      if (isFullSong(s) && !seen.has(s.id)) {
+        seen.add(s.id);
+        songs.push(s);
+      }
+    }
+
+    // 2. Search JioSaavn with queries in parallel
+    try {
+      const results = await Promise.all(
+        searchQueries.slice(0, 3).map((q) =>
+          jioSaavnApi.searchSongs(q, Math.ceil(limit / 2)).catch(() => [])
+        )
+      );
+
+      for (const list of results) {
+        for (const s of list) {
+          if (isFullSong(s) && !seen.has(s.id)) {
+            seen.add(s.id);
+            songs.push(s);
+          }
+          if (songs.length >= limit * 2) break;
+        }
+        if (songs.length >= limit * 2) break;
+      }
+    } catch {
+      // ignore
+    }
+
+    // 3. Fallback to curated tracks if still empty
+    if (songs.length === 0) {
+      return deduplicateSongs(CURATED_FEATURED_SONGS, 'ta').slice(0, limit);
+    }
+
+    // Deduplicate songs: each song appears strictly once, preferring the Tamil version
+    return deduplicateSongs(songs, 'ta').slice(0, limit);
   },
 
   async getSongsByLanguage(langCode: string, limit = 50): Promise<Song[]> {
@@ -352,18 +523,18 @@ export const musicApi = {
           s.language = code;
           finalSongs.push(s);
         }
-        if (finalSongs.length >= limit) break;
+        if (finalSongs.length >= limit * 2) break;
       }
 
       if (finalSongs.length > 0) {
-        return finalSongs;
+        return deduplicateSongs(finalSongs, code).slice(0, limit);
       }
 
       const fallbackLanguage = CURATED_FEATURED_SONGS.filter((s) => s.language === code || code === 'all');
-      return fallbackLanguage.length > 0 ? fallbackLanguage : CURATED_FEATURED_SONGS;
+      return deduplicateSongs(fallbackLanguage.length > 0 ? fallbackLanguage : CURATED_FEATURED_SONGS, code).slice(0, limit);
     } catch (err) {
       console.warn('[MusicApi] getSongsByLanguage error:', err);
-      return CURATED_FEATURED_SONGS;
+      return deduplicateSongs(CURATED_FEATURED_SONGS, (langCode || 'ta').toLowerCase()).slice(0, limit);
     }
   },
 

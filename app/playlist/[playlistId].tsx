@@ -17,14 +17,16 @@ import { Playlist } from '../../types/playlist';
 import { SongCard } from '../../components/SongCard';
 import { Loading } from '../../components/Loading';
 import { usePlayer } from '../../hooks/usePlayer';
-import { getPlaylistCover } from '../../constants/artistImages';
+import { getPlaylistCover, isValidImage, DEFAULT_PLAYLIST_COVER } from '../../constants/artistImages';
+import { musicApi } from '../../services/musicApi';
 
 export default function PlaylistDetailScreen() {
   const { playlistId } = useLocalSearchParams<{ playlistId: string }>();
   const router = useRouter();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [loading, setLoading] = useState(true);
-  const { playTrack, currentTrack, isPlaying, togglePlayPause } = usePlayer();
+  const [isPopulating, setIsPopulating] = useState(false);
+  const { playTrack } = usePlayer();
 
   useEffect(() => {
     loadPlaylist();
@@ -36,9 +38,57 @@ export default function PlaylistDetailScreen() {
       return;
     }
     setLoading(true);
-    const pl = await playlistsDb.getPlaylistById(playlistId);
+    let pl = await playlistsDb.getPlaylistById(playlistId);
+
+    // Auto-fetch songs by playlist title if tracks are empty or few
+    if (pl && (!pl.tracks || pl.tracks.length === 0)) {
+      try {
+        setIsPopulating(true);
+        const fetched = await musicApi.getSongsForPlaylistName(pl.title, 35);
+        if (fetched.length > 0) {
+          pl = {
+            ...pl,
+            tracks: fetched,
+            songCount: fetched.length,
+            coverUrl: isValidImage(pl.coverUrl) && pl.coverUrl !== DEFAULT_PLAYLIST_COVER
+              ? pl.coverUrl
+              : (fetched[0]?.coverUrl || DEFAULT_PLAYLIST_COVER)
+          };
+          await playlistsDb.updatePlaylistTracks(pl.id, fetched);
+        }
+      } catch (err) {
+        console.warn('Auto-fill error:', err);
+      } finally {
+        setIsPopulating(false);
+      }
+    }
+
     setPlaylist(pl);
     setLoading(false);
+  };
+
+  const handleAutoFillSongs = async () => {
+    if (!playlist) return;
+    setIsPopulating(true);
+    try {
+      const fetched = await musicApi.getSongsForPlaylistName(playlist.title, 40);
+      if (fetched.length > 0) {
+        const updated = {
+          ...playlist,
+          tracks: fetched,
+          songCount: fetched.length,
+          coverUrl: isValidImage(playlist.coverUrl) && playlist.coverUrl !== DEFAULT_PLAYLIST_COVER
+            ? playlist.coverUrl
+            : (fetched[0]?.coverUrl || DEFAULT_PLAYLIST_COVER)
+        };
+        await playlistsDb.updatePlaylistTracks(playlist.id, fetched);
+        setPlaylist(updated);
+      }
+    } catch (e) {
+      console.warn('Failed to auto fill songs', e);
+    } finally {
+      setIsPopulating(false);
+    }
   };
 
   const handlePlayAll = () => {
@@ -155,6 +205,18 @@ export default function PlaylistDetailScreen() {
             </TouchableOpacity>
           )}
 
+          <TouchableOpacity
+            style={styles.autoFillBtn}
+            onPress={handleAutoFillSongs}
+            activeOpacity={0.8}
+            disabled={isPopulating}
+          >
+            <Ionicons name={isPopulating ? 'hourglass-outline' : 'sparkles'} size={16} color="#38bdf8" />
+            <Text style={styles.autoFillBtnText}>
+              {isPopulating ? 'Loading songs...' : 'Find Songs by Name'}
+            </Text>
+          </TouchableOpacity>
+
           {playlist.isCustom && (
             <TouchableOpacity
               style={styles.deleteActionBtn}
@@ -172,17 +234,18 @@ export default function PlaylistDetailScreen() {
 
           {playlist.tracks.length === 0 ? (
             <View style={styles.emptyTracksBox}>
-              <Ionicons name="musical-notes-outline" size={48} color="#535353" />
-              <Text style={styles.emptyTracksTitle}>No songs in this playlist yet</Text>
+              <Ionicons name="sparkles-outline" size={48} color="#38bdf8" />
+              <Text style={styles.emptyTracksTitle}>Loading songs for "{playlist.title}"...</Text>
               <Text style={styles.emptyTracksSubtitle}>
-                Add tracks from Search, Tamil Music, or Home feed by tapping "Add to Playlist".
+                Finding songs matching your playlist title from our music library.
               </Text>
               <TouchableOpacity
                 style={styles.findTracksBtn}
-                onPress={() => router.push('/search')}
+                onPress={handleAutoFillSongs}
                 activeOpacity={0.8}
               >
-                <Text style={styles.findTracksText}>Find Songs</Text>
+                <Ionicons name="refresh" size={16} color="#000000" style={{ marginRight: 6 }} />
+                <Text style={styles.findTracksText}>Load Songs Now</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -328,6 +391,22 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 20,
     backgroundColor: '#1f1f1f'
+  },
+  autoFillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)'
+  },
+  autoFillBtnText: {
+    color: '#38bdf8',
+    fontSize: 13,
+    fontWeight: '700'
   },
   section: {
     paddingHorizontal: 24,

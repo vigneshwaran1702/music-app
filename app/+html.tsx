@@ -1,0 +1,42 @@
+import { ScrollViewStyleReset } from 'expo-router/html';
+import React from 'react';
+
+// Web-only file to configure the root HTML document
+export default function Root({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <meta charSet="utf-8" />
+        <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+        <title>Mastereo - Classic & Modern Music</title>
+        <meta name="description" content="Mastereo - Stream endless high-fidelity Tamil, Indian, and International music. Classic sound meets modern streaming." />
+        <meta name="theme-color" content="#0d0e15" />
+
+        {/* Favicon and Apple Touch Icons */}
+        <link rel="icon" type="image/png" href="/favicon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/favicon.png" />
+        <link rel="shortcut icon" href="/favicon.png" />
+
+        {/* Fonts */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+        {/* Disable body scrolling on web for app-like behavior */}
+        <ScrollViewStyleReset />
+
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            body {
+              background-color: #000000;
+              color: #ffffff;
+              font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            }
+          `
+        }} />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}

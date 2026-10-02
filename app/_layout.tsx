@@ -18,9 +18,19 @@ function AppLayout() {
   const pathname = usePathname();
   const isFullScreenPlayer = pathname === '/player';
 
-  // Inject sleek dark Spotify scrollbar styles on Web
+  // Inject sleek dark styles and set Mastereo title/icon on Web
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.title = 'Mastereo - Classic & Modern Music';
+      let link = document.querySelector("link[rel*='icon']") as HTMLLinkElement | null;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'shortcut icon';
+        document.head.appendChild(link);
+      }
+      link.type = 'image/png';
+      link.href = '/favicon.png';
+
       const styleId = 'spotify-global-styles';
       if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
@@ -84,7 +94,7 @@ function AppLayout() {
             <Stack.Screen
               name="index"
               options={{
-                title: 'Aura Music',
+                title: 'Mastereo',
                 headerShown: false
               }}
             />

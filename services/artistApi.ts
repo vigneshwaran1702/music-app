@@ -57,6 +57,22 @@ export const artistApi = {
           }
         }
 
+        // Guarantee at least 20-35 songs for curated artists
+        if (songs.length < 20) {
+          try {
+            const extra = await jioSaavnApi.searchSongs(`${artist.name} hits`, 35);
+            for (const s of extra) {
+              if (isFullSong(s) && !seen.has(s.id)) {
+                seen.add(s.id);
+                songs.push(s);
+              }
+              if (songs.length >= 35) break;
+            }
+          } catch {
+            // ignore
+          }
+        }
+
         const finalSongs = songs.length > 0 ? songs : matchingCurated;
 
         return {
@@ -112,6 +128,22 @@ export const artistApi = {
         if (isFullSong(s) && !seen.has(s.id)) {
           seen.add(s.id);
           songs.push(s);
+        }
+      }
+
+      // Guarantee at least 20-35 songs for dynamic artists
+      if (songs.length < 20) {
+        try {
+          const extra = await jioSaavnApi.searchSongs(`${cleanName} top songs`, 35);
+          for (const s of extra) {
+            if (isFullSong(s) && !seen.has(s.id)) {
+              seen.add(s.id);
+              songs.push(s);
+            }
+            if (songs.length >= 35) break;
+          }
+        } catch {
+          // ignore
         }
       }
 

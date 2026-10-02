@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "MusicApp",
-    "slug": "music-app",
+    "name": "Mastereo",
+    "slug": "mastereo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icons/icon.png",
-    "scheme": "musicapp",
+    "scheme": "mastereo",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {

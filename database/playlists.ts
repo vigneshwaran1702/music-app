@@ -5,10 +5,126 @@ import { CURATED_FEATURED_SONGS } from '../client-api/sources';
 import {
   DEFAULT_PLAYLIST_COVER,
   getPlaylistCover,
+  getArtistImage,
   isValidImage
 } from '../constants/artistImages';
+import { musicApi } from '../services/musicApi';
+import { deduplicateSongs } from '../utils/filterMusic';
 
 const CURATED_DEFAULT_PLAYLISTS: Playlist[] = [
+  // --- Dedicated Separated Language Playlists ---
+  {
+    id: 'pl_lang_ta',
+    title: 'Top Tamil Hits 🇮🇳',
+    description: 'Kollywood blockbusters, viral kuthu tracks, and classic Tamil melodies.',
+    coverUrl: 'https://c.saavncdn.com/187/Jailer-Tamil-2023-20230728081443-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 15,
+    tracks: CURATED_FEATURED_SONGS.filter((s) => s.language === 'ta'),
+    isCustom: false
+  },
+  {
+    id: 'pl_lang_hi',
+    title: 'Bollywood Hindi Hits 🇮🇳',
+    description: 'Chart-topping Bollywood romance, heartbreak ballads, and dance hits.',
+    coverUrl: 'https://c.saavncdn.com/871/Brahmastra-Original-Motion-Picture-Soundtrack-Hindi-2022-20221006155213-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 10,
+    tracks: CURATED_FEATURED_SONGS.filter((s) => s.language === 'hi'),
+    isCustom: false
+  },
+  {
+    id: 'pl_lang_en',
+    title: 'Global English Hits 🇺🇸',
+    description: 'Worldwide Billboard pop, synthwave, R&B, and global smash anthems.',
+    coverUrl: 'https://c.saavncdn.com/820/Blinding-Lights-English-2020-20200912094411-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 10,
+    tracks: CURATED_FEATURED_SONGS.filter((s) => s.language === 'en'),
+    isCustom: false
+  },
+  {
+    id: 'pl_lang_te',
+    title: 'Tollywood Telugu Hits 🇮🇳',
+    description: 'High-octane mass beats and evergreen Telugu chartbusters.',
+    coverUrl: 'https://c.saavncdn.com/882/Pushpa-The-Rise-Telugu-2021-20211210134426-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 8,
+    tracks: CURATED_FEATURED_SONGS.filter((s) => s.language === 'te'),
+    isCustom: false
+  },
+  {
+    id: 'pl_lang_ml',
+    title: 'Mollywood Malayalam Hits 🇮🇳',
+    description: 'Atmospheric, soothing acoustic melodies and trending Kerala hits.',
+    coverUrl: 'https://c.saavncdn.com/488/Aavesham-Malayalam-2024-20240410141013-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 8,
+    tracks: CURATED_FEATURED_SONGS.filter((s) => s.language === 'ml'),
+    isCustom: false
+  },
+  {
+    id: 'pl_lang_pa',
+    title: 'Punjabi Party Hits 🇮🇳',
+    description: 'High-energy Punjabi bangers, hip-hop, and chart-topping beats.',
+    coverUrl: 'https://c.saavncdn.com/artists/Diljit_Dosanjh_004_20221006184542_500x500.webp',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 8,
+    tracks: CURATED_FEATURED_SONGS.filter((s) => s.language === 'pa'),
+    isCustom: false
+  },
+  {
+    id: 'pl_lang_kn',
+    title: 'Sandalwood Kannada Hits 🇮🇳',
+    description: 'Massive Sandalwood mass themes and mesmerizing Kannada melodies.',
+    coverUrl: 'https://c.saavncdn.com/006/KGF-Chapter-2-Kannada-2022-20220413180437-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 6,
+    tracks: CURATED_FEATURED_SONGS.filter((s) => s.language === 'kn'),
+    isCustom: false
+  },
+  {
+    id: 'pl_lang_ko',
+    title: 'Top K-Pop Korean Hits 🇰🇷',
+    description: 'Global sensation K-Pop tracks, dance-pop, and addictive Korean hits.',
+    coverUrl: 'https://c.saavncdn.com/152/Seven-feat-Latto-Clean-Ver-English-2023-20230714100627-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 6,
+    tracks: CURATED_FEATURED_SONGS.filter((s) => s.language === 'ko'),
+    isCustom: false
+  },
+  {
+    id: 'pl_lang_es',
+    title: 'Latin Pop & Reggaeton 🇪🇸',
+    description: 'Vibrant Spanish reggaeton, Latin pop, and energetic dance anthems.',
+    coverUrl: 'https://c.saavncdn.com/393/Despacito-Spanish-2017-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 6,
+    tracks: CURATED_FEATURED_SONGS.filter((s) => s.language === 'es'),
+    isCustom: false
+  },
+  {
+    id: 'pl_lang_ja',
+    title: 'J-Pop & Anime OST 🇯🇵',
+    description: 'Iconic Japanese anime themes, city pop, and trending J-Pop tracks.',
+    coverUrl: 'https://c.saavncdn.com/079/Idol-Japanese-2023-20230412140418-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 6,
+    tracks: CURATED_FEATURED_SONGS.filter((s) => s.language === 'ja'),
+    isCustom: false
+  },
+
+  // --- Artist & Curated Mixes ---
   {
     id: 'pl_tamil_blockbusters',
     title: 'Top Tamil Chartbusters',
@@ -64,6 +180,71 @@ const CURATED_DEFAULT_PLAYLISTS: Playlist[] = [
     isCustom: false
   },
   {
+    id: 'pl_yuvan_hits',
+    title: 'Yuvan Shankar Raja Drugs & Melodies',
+    description: 'Soul-stirring BGM, addictive melodies, and vintage anthems by Yuvan Shankar Raja.',
+    coverUrl: 'https://c.saavncdn.com/artists/Yuvan_Shankar_Raja_003_20210204123512_500x500.webp',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 6,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) => s.artistName.toLowerCase().includes('yuvan') || s.artistId === 'artist_yuvan'
+    ).slice(0, 6),
+    isCustom: false
+  },
+  {
+    id: 'pl_harris_hits',
+    title: 'Best of Harris Jayaraj',
+    description: 'Breathtaking romantic guitar tunes, harmonies, and melodies by Harris Jayaraj.',
+    coverUrl: 'https://c.saavncdn.com/artists/Harris_Jayaraj_002_20220601054350_500x500.webp',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 6,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) => s.artistName.toLowerCase().includes('harris') || s.artistId === 'artist_harris'
+    ).slice(0, 6),
+    isCustom: false
+  },
+  {
+    id: 'pl_sid_sriram',
+    title: 'Sid Sriram Vocal Magic',
+    description: 'Deeply expressive, emotional vocals and romantic chartbusters by Sid Sriram.',
+    coverUrl: 'https://c.saavncdn.com/artists/Sid_Sriram_002_20201211054516_500x500.webp',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 6,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) => s.artistName.toLowerCase().includes('sid sriram') || s.artistId === 'artist_sidsriram'
+    ).slice(0, 6),
+    isCustom: false
+  },
+  {
+    id: 'pl_arijit_hits',
+    title: 'Best of Arijit Singh',
+    description: 'Heart-melting romantic ballads and soulful Bollywood hits by Arijit Singh.',
+    coverUrl: 'https://c.saavncdn.com/artists/Arijit_Singh_002_20210603180808_500x500.webp',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 6,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) => s.artistName.toLowerCase().includes('arijit') || s.artistId === 'artist_arijit'
+    ).slice(0, 6),
+    isCustom: false
+  },
+  {
+    id: 'pl_taylor_hits',
+    title: 'Taylor Swift Pop Anthems',
+    description: 'Iconic pop masterstrokes, narrative poetry, and era-defining Taylor Swift classics.',
+    coverUrl: 'https://c.saavncdn.com/artists/Taylor_Swift_500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 6,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) => s.artistName.toLowerCase().includes('taylor swift') || s.artistId === 'artist_taylor'
+    ).slice(0, 6),
+    isCustom: false
+  },
+  {
     id: 'pl_global_top',
     title: 'Global Top Smash Hits',
     description: 'Worldwide chart-topping pop, synthwave and R&B hits.',
@@ -95,12 +276,21 @@ export const playlistsDb = {
       }
     }
 
-    // Sanitize any existing playlists in storage to ensure accurate covers
+    // Sanitize any existing playlists in storage: correct covers & deduplicate tracks (one song one time)
     list = list.map((p) => {
       const properCover = getPlaylistCover(p);
       if (p.coverUrl !== properCover) {
         p.coverUrl = properCover;
         modified = true;
+      }
+      if (p.tracks && p.tracks.length > 0) {
+        const langTarget = p.id.startsWith('pl_lang_') ? p.id.replace('pl_lang_', '') : 'ta';
+        const deduplicated = deduplicateSongs(p.tracks, langTarget);
+        if (deduplicated.length !== p.tracks.length) {
+          p.tracks = deduplicated;
+          p.songCount = deduplicated.length;
+          modified = true;
+        }
       }
       return p;
     });
@@ -118,34 +308,94 @@ export const playlistsDb = {
 
     // 1. Check in full playlists collection
     const list = await this.getPlaylists();
-    const found = list.find(
+    let found = list.find(
       (p) => p.id === id || p.id.toLowerCase() === cleanId || p.title.toLowerCase() === cleanId
     );
-    if (found) return found;
 
     // 2. Check directly in CURATED_DEFAULT_PLAYLISTS
-    const curated = CURATED_DEFAULT_PLAYLISTS.find(
-      (p) => p.id === id || p.id.toLowerCase() === cleanId || p.title.toLowerCase() === cleanId
-    );
-    if (curated) return curated;
+    if (!found) {
+      found = CURATED_DEFAULT_PLAYLISTS.find(
+        (p) => p.id === id || p.id.toLowerCase() === cleanId || p.title.toLowerCase() === cleanId
+      );
+    }
 
     // 3. Normalized slug / substring search
-    const normalizedTarget = cleanId.replace(/[^a-z0-9]/g, '');
-    const fuzzy = list.find((p) => {
-      const normId = p.id.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const normTitle = p.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return (
-        normId === normalizedTarget ||
-        normTitle === normalizedTarget ||
-        normId.includes(normalizedTarget) ||
-        normalizedTarget.includes(normId) ||
-        normTitle.includes(normalizedTarget) ||
-        normalizedTarget.includes(normTitle)
-      );
-    });
-    if (fuzzy) return fuzzy;
+    if (!found) {
+      const normalizedTarget = cleanId.replace(/[^a-z0-9]/g, '');
+      found = list.find((p) => {
+        const normId = p.id.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const normTitle = p.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return (
+          normId === normalizedTarget ||
+          normTitle === normalizedTarget ||
+          normId.includes(normalizedTarget) ||
+          normalizedTarget.includes(normId) ||
+          normTitle.includes(normalizedTarget) ||
+          normalizedTarget.includes(normTitle)
+        );
+      });
+    }
 
-    return null;
+    // 4. If found, ensure tracks are populated (auto-fill by playlist title if empty!)
+    if (found) {
+      if (!found.tracks || found.tracks.length === 0) {
+        const songs = await musicApi.getSongsForPlaylistName(found.title, 35);
+        if (songs.length > 0) {
+          found.tracks = songs;
+          found.songCount = songs.length;
+          await this.updatePlaylistTracks(found.id, songs);
+        }
+      }
+      return found;
+    }
+
+    // 5. If not found at all, create a dynamic playlist by title so it never says "Playlist Not Found"!
+    const generatedTitle = decodeURIComponent(id)
+      .replace(/pl_artist_/gi, 'Best of ')
+      .replace(/pl_/gi, '')
+      .replace(/_/g, ' ')
+      .replace(/-/g, ' ')
+      .trim();
+
+    const titleCase = generatedTitle
+      .split(' ')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+
+    const songs = await musicApi.getSongsForPlaylistName(titleCase || id, 35);
+    const newPlaylist: Playlist = {
+      id,
+      title: titleCase || 'Curated Playlist',
+      description: `Curated mix featuring ${songs.length} top tracks.`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      songCount: songs.length,
+      tracks: songs,
+      coverUrl: songs[0]?.coverUrl || DEFAULT_PLAYLIST_COVER,
+      isCustom: true
+    };
+
+    list.unshift(newPlaylist);
+    await dbStorage.setItem(dbStorage.KEYS.PLAYLISTS, list);
+    return newPlaylist;
+  },
+
+  async updatePlaylistTracks(playlistId: string, tracks: Song[]): Promise<Playlist | null> {
+    const list = await this.getPlaylists();
+    const target = list.find((p) => p.id === playlistId);
+    if (!target) return null;
+
+    const langTarget = playlistId.startsWith('pl_lang_') ? playlistId.replace('pl_lang_', '') : 'ta';
+    const cleanTracks = deduplicateSongs(tracks, langTarget);
+
+    target.tracks = cleanTracks;
+    target.songCount = cleanTracks.length;
+    target.updatedAt = new Date().toISOString();
+    if (cleanTracks.length > 0 && (!isValidImage(target.coverUrl) || target.coverUrl === DEFAULT_PLAYLIST_COVER)) {
+      target.coverUrl = cleanTracks[0].coverUrl;
+    }
+    await dbStorage.setItem(dbStorage.KEYS.PLAYLISTS, list);
+    return target;
   },
 
   async createPlaylist(title: string, description = '', coverUrl?: string): Promise<Playlist> {
@@ -172,15 +422,16 @@ export const playlistsDb = {
     const target = list.find((p) => p.id === playlistId);
     if (!target) return null;
 
-    if (!target.tracks.some((s) => s.id === song.id)) {
-      target.tracks.push(song);
-      target.songCount = target.tracks.length;
-      target.updatedAt = new Date().toISOString();
-      if (!isValidImage(target.coverUrl) || target.coverUrl === DEFAULT_PLAYLIST_COVER) {
-        target.coverUrl = song.coverUrl;
-      }
-      await dbStorage.setItem(dbStorage.KEYS.PLAYLISTS, list);
+    const langTarget = playlistId.startsWith('pl_lang_') ? playlistId.replace('pl_lang_', '') : 'ta';
+    const cleanTracks = deduplicateSongs([...target.tracks, song], langTarget);
+
+    target.tracks = cleanTracks;
+    target.songCount = cleanTracks.length;
+    target.updatedAt = new Date().toISOString();
+    if (!isValidImage(target.coverUrl) || target.coverUrl === DEFAULT_PLAYLIST_COVER) {
+      target.coverUrl = song.coverUrl;
     }
+    await dbStorage.setItem(dbStorage.KEYS.PLAYLISTS, list);
     return target;
   },
 
@@ -214,5 +465,52 @@ export const playlistsDb = {
     const updated = list.filter((p) => p.id !== playlistId);
     await dbStorage.setItem(dbStorage.KEYS.PLAYLISTS, updated);
     return true;
+  },
+
+  async saveArtistPlaylist(
+    artist: { id: string; name: string; imageUrl?: string },
+    songs: Song[],
+    mode: 'top20' | 'all' = 'top20'
+  ): Promise<Playlist> {
+    const list = await this.getPlaylists();
+    const deduplicated = deduplicateSongs(songs, 'ta');
+    const cleanSongs = mode === 'top20' ? deduplicated.slice(0, 20) : deduplicated;
+    const cleanId = artist.id.replace(/[^a-zA-Z0-9_]/g, '');
+    const playlistId = `pl_artist_${cleanId}_${mode}`;
+    const title = mode === 'top20' ? `Best of ${artist.name} (Top 20)` : `${artist.name} Complete Collection`;
+    const description =
+      mode === 'top20'
+        ? `The top ${cleanSongs.length} essential chartbusters and timeless hits by ${artist.name}.`
+        : `Complete collection of ${cleanSongs.length} tracks by ${artist.name}.`;
+    const coverUrl = getArtistImage(artist.name, artist.imageUrl);
+
+    const existingIdx = list.findIndex((p) => p.id === playlistId);
+    const playlist: Playlist = {
+      id: playlistId,
+      title,
+      description,
+      createdAt: existingIdx >= 0 ? list[existingIdx].createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      songCount: cleanSongs.length,
+      tracks: cleanSongs,
+      coverUrl,
+      isCustom: true
+    };
+
+    if (existingIdx >= 0) {
+      list[existingIdx] = playlist;
+    } else {
+      list.unshift(playlist);
+    }
+
+    await dbStorage.setItem(dbStorage.KEYS.PLAYLISTS, list);
+    return playlist;
+  },
+
+  async isArtistPlaylistSaved(artistId: string, mode: 'top20' | 'all' = 'top20'): Promise<boolean> {
+    const list = await this.getPlaylists();
+    const cleanId = artistId.replace(/[^a-zA-Z0-9_]/g, '');
+    const playlistId = `pl_artist_${cleanId}_${mode}`;
+    return list.some((p) => p.id === playlistId);
   }
 };
