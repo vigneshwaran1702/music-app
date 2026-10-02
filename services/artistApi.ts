@@ -1,8 +1,8 @@
-import { CURATED_ARTISTS, CURATED_FEATURED_SONGS } from '../api/sources';
-import { musicBrainzApi } from '../api/musicbrainz';
-import { jioSaavnApi } from '../api/jiosaavn';
-import { itunesApi } from '../api/itunes';
-import { youtubeApi } from '../api/youtube';
+import { CURATED_ARTISTS, CURATED_FEATURED_SONGS } from '../client-api/sources';
+import { musicBrainzApi } from '../client-api/musicbrainz';
+import { jioSaavnApi } from '../client-api/jiosaavn';
+import { itunesApi } from '../client-api/itunes';
+import { youtubeApi } from '../client-api/youtube';
 import { Artist } from '../types/artist';
 import { Song } from '../types/music';
 

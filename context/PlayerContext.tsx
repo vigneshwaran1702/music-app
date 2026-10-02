@@ -3,8 +3,8 @@ import { Audio, AVPlaybackStatus } from 'expo-av';
 import { Song, PlaybackMode } from '../types/music';
 import { historyDb } from '../database/history';
 import { shuffleArray } from '../utils/filterMusic';
-import { jioSaavnApi } from '../api/jiosaavn';
-import { CURATED_FEATURED_SONGS } from '../api/sources';
+import { jioSaavnApi } from '../client-api/jiosaavn';
+import { CURATED_FEATURED_SONGS } from '../client-api/sources';
 
 interface PlayerContextType {
   currentTrack: Song | null;
