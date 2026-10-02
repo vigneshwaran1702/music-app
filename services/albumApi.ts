@@ -2,6 +2,7 @@ import { CURATED_ALBUMS, CURATED_FEATURED_SONGS } from '../api/sources';
 import { jioSaavnApi } from '../api/jiosaavn';
 import { itunesApi } from '../api/itunes';
 import { Album } from '../types/album';
+import { Song } from '../types/music';
 
 export const albumApi = {
   async getAllAlbums(): Promise<Album[]> {
@@ -67,12 +68,22 @@ export const albumApi = {
           .replace('itunes_album_', '')
           .replace(/_/g, ' ')
       );
-      const [saavnSongs, itunesSongs] = await Promise.all([
-        jioSaavnApi.searchSongs(clean, 25),
-        itunesApi.searchSongs(clean, 10)
-      ]);
+      const saavnSongs = await jioSaavnApi.searchSongs(clean, 25).catch(() => []);
 
-      const songs = saavnSongs.length > 0 ? saavnSongs : itunesSongs;
+      const matchingCurated = CURATED_FEATURED_SONGS.filter(
+        (s) =>
+          (s.albumTitle || '').toLowerCase().includes(clean.toLowerCase()) ||
+          s.title.toLowerCase().includes(clean.toLowerCase())
+      );
+
+      const isFullSong = (s: Song) =>
+        Boolean(s.audioUrl) &&
+        !s.audioUrl.includes('apple.com') &&
+        !s.audioUrl.includes('AudioPreview') &&
+        !s.audioUrl.includes('mzstatic');
+
+      const fullSaavnSongs = saavnSongs.filter(isFullSong);
+      const songs = fullSaavnSongs.length > 0 ? fullSaavnSongs : matchingCurated;
       if (songs.length > 0) {
         return {
           id: albumId,

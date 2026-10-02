@@ -1,7 +1,7 @@
 import { Song } from '../types/music';
 import { APP_CONFIG } from '../constants/config';
 import { decodeHtmlEntities, jioSaavnApi } from './jiosaavn';
-import { itunesApi } from './itunes';
+import { CURATED_FEATURED_SONGS } from './sources';
 
 export interface YouTubeSearchItem {
   id: { videoId: string };
@@ -97,20 +97,24 @@ export const youtubeApi = {
     let audioUrl = '';
     let duration = 210;
 
-    // Fast resolution: check JioSaavn then iTunes
+    // Fast resolution: check JioSaavn then Curated
     try {
       const matchQuery = `${title} ${artistName !== 'YouTube Music' ? artistName : ''}`.trim();
-      const [saavnMatches, itunesMatches] = await Promise.all([
-        jioSaavnApi.searchSongs(matchQuery, 1).catch(() => []),
-        itunesApi.searchSongs(matchQuery, 1).catch(() => [])
-      ]);
+      const saavnMatches = await jioSaavnApi.searchSongs(matchQuery, 1).catch(() => []);
 
       if (saavnMatches.length > 0 && saavnMatches[0].audioUrl) {
         audioUrl = saavnMatches[0].audioUrl;
         duration = saavnMatches[0].duration || 210;
-      } else if (itunesMatches.length > 0 && itunesMatches[0].audioUrl) {
-        audioUrl = itunesMatches[0].audioUrl;
-        duration = itunesMatches[0].duration || 210;
+      } else {
+        const foundCurated = CURATED_FEATURED_SONGS.find(
+          (s) =>
+            s.title.toLowerCase().includes(title.toLowerCase()) ||
+            title.toLowerCase().includes(s.title.toLowerCase())
+        );
+        if (foundCurated && foundCurated.audioUrl) {
+          audioUrl = foundCurated.audioUrl;
+          duration = foundCurated.duration || 210;
+        }
       }
     } catch {
       // ignore

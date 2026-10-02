@@ -124,8 +124,30 @@ export const musicApi = {
         itunesApi.searchAlbums(clean, 15).catch(() => [])
       ]);
 
-      // Prioritize full JioSaavn songs first
-      const allSongs = [...saavnSongs, ...ytSongs, ...itunesSongs];
+      // 1. First, search our rich verified curated full-length songs
+      const matchedCurated = CURATED_FEATURED_SONGS.filter((s) => {
+        const queryLower = clean.toLowerCase();
+        return (
+          s.title.toLowerCase().includes(queryLower) ||
+          s.artistName.toLowerCase().includes(queryLower) ||
+          (s.genre || '').toLowerCase().includes(queryLower) ||
+          (s.albumTitle || '').toLowerCase().includes(queryLower)
+        );
+      });
+
+      // 2. Discard 30-sec previews from search results so users only get full songs
+      const isFullSong = (s: Song) =>
+        Boolean(s.audioUrl) &&
+        !s.audioUrl.includes('apple.com') &&
+        !s.audioUrl.includes('AudioPreview') &&
+        !s.audioUrl.includes('mzstatic') &&
+        !s.id.startsWith('itunes_');
+
+      const fullSaavnSongs = saavnSongs.filter(isFullSong);
+      const fullYtSongs = ytSongs.filter(isFullSong);
+
+      // Prioritize: Verified Curated -> JioSaavn (full 320kbps) -> YouTube
+      const allSongs = [...matchedCurated, ...fullSaavnSongs, ...fullYtSongs];
       const seenIds = new Set<string>();
       const seenTitles = new Set<string>();
       const deduplicatedSongs: Song[] = [];
@@ -135,7 +157,7 @@ export const musicApi = {
           /[^a-z0-9]/g,
           ''
         );
-        if (!seenIds.has(song.id) && !seenTitles.has(normalizedTitle) && song.audioUrl) {
+        if (!seenIds.has(song.id) && !seenTitles.has(normalizedTitle) && isFullSong(song)) {
           seenIds.add(song.id);
           seenTitles.add(normalizedTitle);
           deduplicatedSongs.push(song);
@@ -266,8 +288,26 @@ export const musicApi = {
       const seen = new Set<string>();
       const finalSongs: Song[] = [];
 
-      for (const s of flattened) {
+      // Include our verified curated full-length songs for this language first
+      const matchingCurated = CURATED_FEATURED_SONGS.filter(
+        (s) => s.language === code || (code === 'all' && s.audioUrl)
+      );
+
+      for (const s of matchingCurated) {
         if (!seen.has(s.id) && s.audioUrl) {
+          seen.add(s.id);
+          finalSongs.push(s);
+        }
+      }
+
+      for (const s of flattened) {
+        if (
+          !seen.has(s.id) &&
+          s.audioUrl &&
+          !s.audioUrl.includes('apple.com') &&
+          !s.audioUrl.includes('AudioPreview') &&
+          !s.audioUrl.includes('mzstatic')
+        ) {
           seen.add(s.id);
           s.language = code;
           finalSongs.push(s);

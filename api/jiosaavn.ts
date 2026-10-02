@@ -162,7 +162,7 @@ export const jioSaavnApi = {
     const clean = query.trim();
 
     try {
-      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&q=${encodeURIComponent(
+      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=android&q=${encodeURIComponent(
         clean
       )}&n=${limit}&p=${page}`;
       const data = await fetchDirectSaavn(url);
@@ -180,7 +180,7 @@ export const jioSaavnApi = {
 
   async getTrendingSongs(limit = 40): Promise<Song[]> {
     try {
-      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=content.getTrending&_format=json&_marker=0&api_version=4&ctx=web6dot0`;
+      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=content.getTrending&_format=json&_marker=0&api_version=4&ctx=android`;
       const data = await fetchDirectSaavn(url);
       if (Array.isArray(data) && data.length > 0) {
         const songs: Song[] = [];
@@ -215,7 +215,7 @@ export const jioSaavnApi = {
     const clean = query.trim();
 
     try {
-      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=search.getAlbumResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&q=${encodeURIComponent(
+      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=search.getAlbumResults&_format=json&_marker=0&api_version=4&ctx=android&q=${encodeURIComponent(
         clean
       )}&n=${limit}`;
       const data = await fetchDirectSaavn(url);
@@ -248,7 +248,7 @@ export const jioSaavnApi = {
     const clean = query.trim();
 
     try {
-      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=search.getArtistResults&_format=json&_marker=0&api_version=4&ctx=web6dot0&q=${encodeURIComponent(
+      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=search.getArtistResults&_format=json&_marker=0&api_version=4&ctx=android&q=${encodeURIComponent(
         clean
       )}&n=${limit}`;
       const data = await fetchDirectSaavn(url);
@@ -271,7 +271,7 @@ export const jioSaavnApi = {
   async getAlbumDetails(albumId: string): Promise<{ album: Album; songs: Song[] } | null> {
     const cleanId = albumId.replace('saavn_album_', '');
     try {
-      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=content.getAlbumDetails&_format=json&_marker=0&api_version=4&ctx=web6dot0&albumid=${cleanId}`;
+      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=content.getAlbumDetails&_format=json&_marker=0&api_version=4&ctx=android&albumid=${cleanId}`;
       const data = await fetchDirectSaavn(url);
       if (data && (data.title || data.name)) {
         const rawSongs = data.list || data.songs || [];
@@ -308,7 +308,7 @@ export const jioSaavnApi = {
   async getSongDetails(songId: string): Promise<Song | null> {
     const cleanId = songId.replace('saavn_', '');
     try {
-      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=song.getDetails&_format=json&_marker=0&api_version=4&ctx=web6dot0&pids=${cleanId}`;
+      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=song.getDetails&_format=json&_marker=0&api_version=4&ctx=android&pids=${cleanId}`;
       const data = await fetchDirectSaavn(url);
       if (data && data[cleanId]) {
         return this.mapDirectSong(data[cleanId]);
@@ -323,7 +323,7 @@ export const jioSaavnApi = {
     if (!songId) return '';
     const cleanId = songId.replace('saavn_', '');
     try {
-      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=lyrics.getLyrics&_format=json&_marker=0&api_version=4&ctx=web6dot0&lyrics_id=${cleanId}`;
+      const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=lyrics.getLyrics&_format=json&_marker=0&api_version=4&ctx=android&lyrics_id=${cleanId}`;
       const data = await fetchDirectSaavn(url);
       if (data && data.lyrics) {
         return decodeHtmlEntities(data.lyrics).replace(/<br\s*[\/]?>/gi, '\n');
