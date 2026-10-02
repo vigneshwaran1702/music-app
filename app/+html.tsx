@@ -9,8 +9,8 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
-        <title>Mastereo - Classic & Modern Music</title>
-        <meta name="description" content="Mastereo - Stream endless high-fidelity Tamil, Indian, and International music. Classic sound meets modern streaming." />
+        <title>Aura Music</title>
+        <meta name="description" content="Aura Music - Stream and discover millions of high-fidelity songs, playlists, and artists." />
         <meta name="theme-color" content="#0d0e15" />
 
         {/* Favicon and Apple Touch Icons */}

@@ -157,11 +157,11 @@ export default function HomeScreen() {
               onPress={() => router.push('/')}
             >
               <Image
-                source={require('../assets/icons/mastereo-logo.png')}
+                source={require('../assets/icons/aura-logo.png')}
                 style={styles.mobileLogo}
                 resizeMode="cover"
               />
-              <Text style={styles.mobileBrandText}>Mastereo</Text>
+              <Text style={styles.mobileBrandText}>Aura Music</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -470,11 +470,11 @@ const styles = StyleSheet.create({
     gap: 8
   },
   mobileLogo: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: '#eab308'
+    borderColor: '#06b6d4'
   },
   mobileBrandText: {
     fontSize: 16,

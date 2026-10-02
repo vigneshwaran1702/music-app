@@ -74,13 +74,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
           onPress={() => handleNav('/')}
         >
           <Image
-            source={require('../assets/icons/mastereo-logo.png')}
+            source={require('../assets/icons/aura-logo.png')}
             style={styles.brandLogo}
             resizeMode="cover"
           />
           <View>
             <Text style={styles.brandName}>{APP_CONFIG.APP_NAME}</Text>
-            <Text style={styles.brandTagline}>CLASSIC & MODERN</Text>
+            <Text style={styles.brandTagline}>STREAM & DISCOVER</Text>
           </View>
         </TouchableOpacity>
 
@@ -284,11 +284,11 @@ const styles = StyleSheet.create({
     marginBottom: 4
   },
   brandLogo: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: '#eab308'
+    borderColor: '#06b6d4'
   },
   brandName: {
     fontSize: 16,
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   brandTagline: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#eab308',
+    color: '#06b6d4',
     letterSpacing: 1.2,
     marginTop: 1
   },
