@@ -109,13 +109,51 @@ export default function PlaylistsScreen() {
     );
   }
 
+  const [filter, setFilter] = useState<'all' | 'languages' | 'artists' | 'curated' | 'custom'>('all');
+
+  const isLanguagePl = (pl: Playlist) =>
+    pl.id.startsWith('pl_lang_') ||
+    pl.title.includes('🇮🇳') ||
+    pl.title.includes('🇺🇸') ||
+    pl.title.includes('🇰🇷') ||
+    pl.title.includes('🇪🇸') ||
+    pl.title.includes('🇯🇵');
+
+  const isArtistPl = (pl: Playlist) =>
+    !isLanguagePl(pl) &&
+    (pl.id.startsWith('pl_artist_') ||
+      [
+        'pl_anirudh_hits',
+        'pl_rahman_essentials',
+        'pl_yuvan_hits',
+        'pl_harris_hits',
+        'pl_sid_sriram',
+        'pl_arijit_hits',
+        'pl_taylor_hits'
+      ].includes(pl.id) ||
+      pl.title.toLowerCase().startsWith('best of ') ||
+      pl.title.toLowerCase().includes('rockstar anthems') ||
+      pl.title.toLowerCase().includes('masterpieces') ||
+      pl.title.toLowerCase().includes('vocal magic'));
+
+  const languagePlaylistsCount = playlists.filter(isLanguagePl).length;
+  const artistPlaylistsCount = playlists.filter(isArtistPl).length;
+
+  const filteredPlaylists = playlists.filter((pl) => {
+    if (filter === 'languages') return isLanguagePl(pl);
+    if (filter === 'artists') return isArtistPl(pl);
+    if (filter === 'curated') return !pl.isCustom && !isArtistPl(pl) && !isLanguagePl(pl);
+    if (filter === 'custom') return pl.isCustom && !isArtistPl(pl) && !isLanguagePl(pl);
+    return true;
+  });
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.topRow}>
           <View>
             <Text style={styles.headerTitle}>Your Playlists</Text>
-            <Text style={styles.headerSubtitle}>Create custom music mixes and playlists.</Text>
+            <Text style={styles.headerSubtitle}>Separated language playlists, curated mixes & artist hits.</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
             <TouchableOpacity
@@ -137,17 +175,92 @@ export default function PlaylistsScreen() {
           </View>
         </View>
 
+        {/* Filter Pills */}
+        <View style={styles.filterPillsRow}>
+          <TouchableOpacity
+            style={[styles.filterPill, filter === 'all' && styles.filterPillActive]}
+            onPress={() => setFilter('all')}
+          >
+            <Text style={[styles.filterPillText, filter === 'all' && styles.filterPillTextActive]}>
+              All ({playlists.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterPill, filter === 'languages' && styles.filterPillActive]}
+            onPress={() => setFilter('languages')}
+          >
+            <Text style={[styles.filterPillText, filter === 'languages' && styles.filterPillTextActive]}>
+              Languages 🌐 ({languagePlaylistsCount})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterPill, filter === 'artists' && styles.filterPillActive]}
+            onPress={() => setFilter('artists')}
+          >
+            <Text style={[styles.filterPillText, filter === 'artists' && styles.filterPillTextActive]}>
+              Artists 🌟 ({artistPlaylistsCount})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterPill, filter === 'curated' && styles.filterPillActive]}
+            onPress={() => setFilter('curated')}
+          >
+            <Text style={[styles.filterPillText, filter === 'curated' && styles.filterPillTextActive]}>
+              Curated Mixes
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterPill, filter === 'custom' && styles.filterPillActive]}
+            onPress={() => setFilter('custom')}
+          >
+            <Text style={[styles.filterPillText, filter === 'custom' && styles.filterPillTextActive]}>
+              Custom
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Artist Playlist CTA Banner */}
+        <TouchableOpacity
+          style={styles.artistBannerCTA}
+          onPress={() => router.push('/artists')}
+          activeOpacity={0.85}
+        >
+          <LinearGradient
+            colors={['#1e3a5f', '#142033']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.artistBannerContent}
+          >
+            <Ionicons name="sparkles" size={24} color="#38bdf8" />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.artistBannerTitle}>Want more Artist Playlists?</Text>
+              <Text style={styles.artistBannerSubtitle}>
+                Browse top artists and tap "Save Best 20" to generate instant playlists.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#a7a7a7" />
+          </LinearGradient>
+        </TouchableOpacity>
+
         {loading ? (
           <Loading message="Loading playlists..." />
-        ) : playlists.length === 0 ? (
+        ) : filteredPlaylists.length === 0 ? (
           <View style={styles.emptyBox}>
             <Ionicons name="musical-notes-outline" size={56} color="#a7a7a7" />
-            <Text style={styles.emptyTitle}>No Playlists Yet</Text>
-            <Text style={styles.emptySub}>Tap the + button to create your first custom playlist.</Text>
+            <Text style={styles.emptyTitle}>No Playlists Found</Text>
+            <Text style={styles.emptySub}>
+              {filter === 'artists'
+                ? 'Visit any Artist profile and tap "Save Best 20 Playlist" to create one!'
+                : 'Tap the + button to create your first custom playlist.'}
+            </Text>
           </View>
         ) : (
           <View style={styles.list}>
-            {playlists.map((pl) => (
+            {filteredPlaylists.map((pl) => (
               <TouchableOpacity
                 key={pl.id}
                 style={styles.playlistCard}
@@ -157,7 +270,9 @@ export default function PlaylistsScreen() {
                 <Image source={{ uri: getPlaylistCover(pl) }} style={styles.cardCover} />
                 <View style={styles.cardInfo}>
                   <Text style={styles.cardTitle}>{pl.title}</Text>
-                  <Text style={styles.cardMeta}>Playlist • {pl.tracks.length} songs</Text>
+                  <Text style={styles.cardMeta}>
+                    {isArtistPl(pl) ? 'Artist Playlist' : 'Playlist'} • {pl.tracks.length} songs
+                  </Text>
                 </View>
                 <TouchableOpacity
                   style={styles.deleteBtn}
@@ -251,6 +366,58 @@ const styles = StyleSheet.create({
     backgroundColor: '#1ed760',
     justifyContent: 'center',
     alignItems: 'center'
+  },
+  filterPillsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    gap: 8,
+    marginBottom: 16,
+    flexWrap: 'wrap'
+  },
+  filterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: '#242424',
+    borderWidth: 1,
+    borderColor: '#333333'
+  },
+  filterPillActive: {
+    backgroundColor: '#ffffff',
+    borderColor: '#ffffff'
+  },
+  filterPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#a7a7a7'
+  },
+  filterPillTextActive: {
+    color: '#000000'
+  },
+  artistBannerCTA: {
+    marginHorizontal: 24,
+    marginBottom: 20,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.2)'
+  },
+  artistBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14
+  },
+  artistBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginBottom: 2
+  },
+  artistBannerSubtitle: {
+    fontSize: 12,
+    color: '#9ca3af',
+    lineHeight: 16
   },
   emptyBox: {
     alignItems: 'center',

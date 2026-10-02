@@ -30,7 +30,7 @@ type HomeFilter = 'all' | 'tamil' | 'music' | 'trending';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { isDesktop, isTablet } = useResponsive();
+  const { isDesktop, isTablet, isMobile } = useResponsive();
   const { loading, featured, trending, newReleases, chillOut, refresh } = useMusic();
   const { playTrack, currentTrack } = usePlayer();
 
@@ -150,13 +150,28 @@ export default function HomeScreen() {
       {/* Sticky Top Navigation Bar (Frosted Translucent) */}
       <View style={styles.topStickyHeader}>
         <View style={styles.navHistoryArrows}>
-          <TouchableOpacity
-            style={styles.arrowCircle}
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-back" size={20} color="#ffffff" />
-          </TouchableOpacity>
+          {isMobile ? (
+            <TouchableOpacity
+              style={styles.mobileBrandRow}
+              activeOpacity={0.8}
+              onPress={() => router.push('/')}
+            >
+              <Image
+                source={require('../assets/icons/mastereo-logo.png')}
+                style={styles.mobileLogo}
+                resizeMode="cover"
+              />
+              <Text style={styles.mobileBrandText}>Mastereo</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.arrowCircle}
+              onPress={() => router.back()}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chevron-back" size={20} color="#ffffff" />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Filter Pills */}
@@ -448,6 +463,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center'
+  },
+  mobileBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  mobileLogo: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1.5,
+    borderColor: '#eab308'
+  },
+  mobileBrandText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: -0.3
   },
   topFilterPills: {
     flexDirection: 'row',

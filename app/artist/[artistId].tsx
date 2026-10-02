@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  Alert
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,12 +18,18 @@ import { getArtistImage } from '../../constants/artistImages';
 import { SongCard } from '../../components/SongCard';
 import { Loading } from '../../components/Loading';
 import { usePlayer } from '../../hooks/usePlayer';
+import { playlistsDb } from '../../database/playlists';
 
 export default function ArtistDetailScreen() {
   const { artistId } = useLocalSearchParams<{ artistId: string }>();
   const router = useRouter();
   const [artist, setArtist] = useState<Artist | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'top20' | 'all'>('top20');
+  const [savedTop20, setSavedTop20] = useState(false);
+  const [savedAll, setSavedAll] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [savedPlaylistId, setSavedPlaylistId] = useState<string | null>(null);
   const { playTrack } = usePlayer();
 
   useEffect(() => {
@@ -24,10 +38,46 @@ export default function ArtistDetailScreen() {
       setLoading(true);
       const data = await artistApi.getArtistById(artistId);
       setArtist(data);
+
+      if (data) {
+        const isTop20 = await playlistsDb.isArtistPlaylistSaved(data.id, 'top20');
+        const isAll = await playlistsDb.isArtistPlaylistSaved(data.id, 'all');
+        setSavedTop20(isTop20);
+        setSavedAll(isAll);
+      }
       setLoading(false);
     }
     load();
   }, [artistId]);
+
+  const handleSavePlaylist = async (mode: 'top20' | 'all') => {
+    if (!artist || !artist.topTracks || artist.topTracks.length === 0) return;
+
+    try {
+      const saved = await playlistsDb.saveArtistPlaylist(artist, artist.topTracks, mode);
+      if (mode === 'top20') {
+        setSavedTop20(true);
+      } else {
+        setSavedAll(true);
+      }
+      setSavedPlaylistId(saved.id);
+      setToastMessage(`Saved "${saved.title}" (${saved.songCount} songs) to your Playlists!`);
+
+      // Auto-hide toast after 5 seconds
+      setTimeout(() => {
+        setToastMessage(null);
+      }, 5000);
+    } catch (err) {
+      console.warn('Failed to save artist playlist', err);
+      Alert.alert('Error', 'Could not save playlist. Please try again.');
+    }
+  };
+
+  const handlePlaySelection = (tracks: any[]) => {
+    if (tracks && tracks.length > 0) {
+      playTrack(tracks[0], tracks);
+    }
+  };
 
   if (loading) {
     return (
@@ -41,14 +91,44 @@ export default function ArtistDetailScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.notFound}>
+          <Ionicons name="person-outline" size={56} color="#a7a7a7" style={{ marginBottom: 16 }} />
           <Text style={styles.notFoundText}>Artist not found</Text>
+          <TouchableOpacity
+            style={{ backgroundColor: '#1ed760', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 24, marginTop: 16 }}
+            onPress={() => router.push('/artists')}
+          >
+            <Text style={{ color: '#000000', fontWeight: '700', fontSize: 14 }}>Browse Artists</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
+  const allTracks = artist.topTracks || [];
+  const top20Tracks = allTracks.slice(0, 20);
+  const displayedTracks = activeTab === 'top20' ? top20Tracks : allTracks;
+
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Toast Feedback Notification */}
+      {toastMessage && (
+        <View style={styles.toastBox}>
+          <Ionicons name="checkmark-circle" size={20} color="#1ed760" />
+          <Text style={styles.toastText} numberOfLines={1}>{toastMessage}</Text>
+          {savedPlaylistId && (
+            <TouchableOpacity
+              style={styles.toastBtn}
+              onPress={() => {
+                setToastMessage(null);
+                router.push(`/playlist/${savedPlaylistId}` as any);
+              }}
+            >
+              <Text style={styles.toastBtnText}>View</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Back navigation */}
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
@@ -91,15 +171,47 @@ export default function ArtistDetailScreen() {
         </LinearGradient>
 
         {/* Actions Bar */}
-        {artist.topTracks && artist.topTracks.length > 0 && (
+        {allTracks.length > 0 && (
           <View style={styles.actionsBar}>
             <TouchableOpacity
               style={styles.bigGreenPlayBtn}
-              onPress={() => playTrack(artist.topTracks![0], artist.topTracks)}
+              onPress={() => handlePlaySelection(displayedTracks)}
               activeOpacity={0.85}
             >
               <Ionicons name="play" size={26} color="#000000" />
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.savePlaylistActionBtn, savedTop20 && styles.savePlaylistActionBtnActive]}
+              onPress={() => handleSavePlaylist('top20')}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={savedTop20 ? 'checkmark-circle' : 'add-circle-outline'}
+                size={18}
+                color={savedTop20 ? '#1ed760' : '#ffffff'}
+              />
+              <Text style={[styles.savePlaylistActionText, savedTop20 && { color: '#1ed760' }]}>
+                {savedTop20 ? 'Best 20 Saved' : 'Save Best 20 Playlist'}
+              </Text>
+            </TouchableOpacity>
+
+            {allTracks.length > 20 && (
+              <TouchableOpacity
+                style={[styles.savePlaylistActionBtn, savedAll && styles.savePlaylistActionBtnActive]}
+                onPress={() => handleSavePlaylist('all')}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={savedAll ? 'checkmark-circle' : 'albums-outline'}
+                  size={18}
+                  color={savedAll ? '#1ed760' : '#ffffff'}
+                />
+                <Text style={[styles.savePlaylistActionText, savedAll && { color: '#1ed760' }]}>
+                  {savedAll ? 'All Saved' : `Save All (${allTracks.length})`}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity style={styles.followBtn} activeOpacity={0.8}>
               <Text style={styles.followBtnText}>Follow</Text>
@@ -107,15 +219,96 @@ export default function ArtistDetailScreen() {
           </View>
         )}
 
-        {/* Popular Songs */}
+        {/* Artist Playlist Showcase Card */}
+        {allTracks.length > 0 && (
+          <View style={styles.showcaseSection}>
+            <LinearGradient
+              colors={['#1e3a5f', '#152538', '#141416']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.showcaseCard}
+            >
+              <Image
+                source={{ uri: getArtistImage(artist.name, artist.imageUrl) }}
+                style={styles.showcaseCover}
+              />
+
+              <View style={styles.showcaseContent}>
+                <View style={styles.showcaseBadgeRow}>
+                  <Ionicons name="sparkles" size={13} color="#38bdf8" />
+                  <Text style={styles.showcaseBadgeText}>ARTIST PLAYLIST</Text>
+                </View>
+
+                <Text style={styles.showcaseTitle}>Best of {artist.name}</Text>
+                <Text style={styles.showcaseSubtitle} numberOfLines={2}>
+                  The top {top20Tracks.length} essential chartbusters and career-defining hits by {artist.name}.
+                </Text>
+
+                <View style={styles.showcaseButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.showcasePlayBtn}
+                    onPress={() => handlePlaySelection(top20Tracks)}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="play" size={16} color="#000000" />
+                    <Text style={styles.showcasePlayBtnText}>Play Best 20</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.showcaseSaveBtn, savedTop20 && styles.showcaseSaveBtnActive]}
+                    onPress={() => handleSavePlaylist('top20')}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons
+                      name={savedTop20 ? 'checkmark' : 'add'}
+                      size={16}
+                      color={savedTop20 ? '#1ed760' : '#ffffff'}
+                    />
+                    <Text style={[styles.showcaseSaveBtnText, savedTop20 && { color: '#1ed760' }]}>
+                      {savedTop20 ? 'In Library' : 'Save to Library'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+
+        {/* Popular Songs Header & Tab Switcher */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Popular</Text>
-          {artist.topTracks && artist.topTracks.length > 0 ? (
-            artist.topTracks.map((s, idx) => (
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Tracks</Text>
+
+            {/* Switcher: Top 20 vs All Songs */}
+            <View style={styles.tabSwitcher}>
+              <TouchableOpacity
+                style={[styles.tabPill, activeTab === 'top20' && styles.tabPillActive]}
+                onPress={() => setActiveTab('top20')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.tabPillText, activeTab === 'top20' && styles.tabPillTextActive]}>
+                  Best 20 ({top20Tracks.length})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.tabPill, activeTab === 'all' && styles.tabPillActive]}
+                onPress={() => setActiveTab('all')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.tabPillText, activeTab === 'all' && styles.tabPillTextActive]}>
+                  All Songs ({allTracks.length})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {displayedTracks.length > 0 ? (
+            displayedTracks.map((s, idx) => (
               <SongCard
-                key={s.id}
+                key={`${s.id}_${idx}`}
                 song={s}
-                playlist={artist.topTracks}
+                playlist={displayedTracks}
                 variant="list"
                 index={idx}
               />
@@ -277,5 +470,186 @@ const styles = StyleSheet.create({
   notFoundText: {
     fontSize: 16,
     color: '#a7a7a7'
+  },
+  toastBox: {
+    position: 'absolute',
+    top: 16,
+    left: 20,
+    right: 20,
+    zIndex: 999,
+    backgroundColor: '#1f2937',
+    borderWidth: 1,
+    borderColor: '#374151',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10
+  },
+  toastText: {
+    flex: 1,
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600'
+  },
+  toastBtn: {
+    backgroundColor: '#1ed760',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14
+  },
+  toastBtnText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  savePlaylistActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20
+  },
+  savePlaylistActionBtnActive: {
+    borderColor: '#1ed760',
+    backgroundColor: 'rgba(30, 215, 96, 0.12)'
+  },
+  savePlaylistActionText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600'
+  },
+  showcaseSection: {
+    paddingHorizontal: 24,
+    marginBottom: 24
+  },
+  showcaseCard: {
+    flexDirection: 'row',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    gap: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8
+  },
+  showcaseCover: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    backgroundColor: '#282828'
+  },
+  showcaseContent: {
+    flex: 1,
+    justifyContent: 'center'
+  },
+  showcaseBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 4
+  },
+  showcaseBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#38bdf8',
+    letterSpacing: 0.8
+  },
+  showcaseTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginBottom: 4
+  },
+  showcaseSubtitle: {
+    fontSize: 12,
+    color: '#9ca3af',
+    lineHeight: 17,
+    marginBottom: 10
+  },
+  showcaseButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap'
+  },
+  showcasePlayBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1ed760',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    gap: 6
+  },
+  showcasePlayBtnText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  showcaseSaveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    gap: 5
+  },
+  showcaseSaveBtnActive: {
+    borderColor: '#1ed760',
+    backgroundColor: 'rgba(30, 215, 96, 0.15)'
+  },
+  showcaseSaveBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600'
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+    flexWrap: 'wrap',
+    gap: 10
+  },
+  tabSwitcher: {
+    flexDirection: 'row',
+    backgroundColor: '#1e1e1e',
+    borderRadius: 20,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: '#2e2e2e'
+  },
+  tabPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16
+  },
+  tabPillActive: {
+    backgroundColor: '#333333'
+  },
+  tabPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#888888'
+  },
+  tabPillTextActive: {
+    color: '#ffffff',
+    fontWeight: '700'
   }
 });

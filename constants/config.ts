@@ -1,5 +1,5 @@
 export const APP_CONFIG = {
-  APP_NAME: 'Aura Music',
+  APP_NAME: 'Mastereo',
   APP_VERSION: '1.0.0',
   JIOSAAVN_API_BASE: 'https://www.jiosaavn.com/api.php',
   MUSICBRAINZ_API_BASE: 'https://musicbrainz.org/ws/2',

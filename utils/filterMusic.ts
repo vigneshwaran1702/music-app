@@ -30,3 +30,103 @@ export function shuffleArray<T>(array: T[]): T[] {
   }
   return result;
 }
+
+/**
+ * Normalizes song title for canonical duplicate identification.
+ * Strips out film prefixes, '(From "...")', '[Tamil]', feat artists, etc.
+ */
+export function getCanonicalSongKey(song: Song): string {
+  const rawTitle = song.title || '';
+  const cleanedTitle = rawTitle
+    .toLowerCase()
+    .replace(/\(from.*?\)/gi, '')
+    .replace(/\[.*?\]/g, '')
+    .replace(/\(feat.*?\)/gi, '')
+    .replace(/\(tamil.*?\)/gi, '')
+    .replace(/\(telugu.*?\)/gi, '')
+    .replace(/\(hindi.*?\)/gi, '')
+    .replace(/\(kannada.*?\)/gi, '')
+    .replace(/\(malayalam.*?\)/gi, '')
+    .replace(/\(original motion picture.*?\)/gi, '')
+    .replace(/\(original soundtrack.*?\)/gi, '')
+    .replace(/\(soundtrack.*?\)/gi, '')
+    .replace(/\(.*?\)/g, '')
+    .replace(/feat\..*$/gi, '')
+    .replace(/ft\..*$/gi, '')
+    .replace(/official.*$/gi, '')
+    .replace(/video.*$/gi, '')
+    .replace(/lyric.*$/gi, '')
+    .replace(/remix/gi, '')
+    .replace(/lofi/gi, '')
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+
+  // If title became completely empty, fallback to raw alphanumeric
+  const titleKey = cleanedTitle || rawTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  const primaryArtist = (song.artistName || '')
+    .toLowerCase()
+    .split(/[,&]/)[0]
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+
+  return `${titleKey}_${primaryArtist.slice(0, 10)}`;
+}
+
+/**
+ * Deduplicates songs so each song appears strictly ONE time in a playlist.
+ * In accordance with user preference:
+ * "in playlist place one song one time in tamil version"
+ * When multiple versions of the same track exist (e.g. dubbed/multilingual versions),
+ * the Tamil version is given high priority.
+ */
+export function deduplicateSongs(songs: Song[], targetLanguage = 'ta'): Song[] {
+  const map = new Map<string, Song>();
+
+  for (const song of songs) {
+    if (!song.audioUrl) continue;
+    const key = getCanonicalSongKey(song);
+    const existing = map.get(key);
+
+    if (!existing) {
+      map.set(key, song);
+      continue;
+    }
+
+    // Scoring comparator: decides which version to keep
+    const scoreSong = (s: Song): number => {
+      let score = 0;
+      const lang = (s.language || '').toLowerCase();
+      const titleLower = (s.title + ' ' + (s.albumTitle || '')).toLowerCase();
+
+      // Target language priority
+      if (lang === targetLanguage.toLowerCase()) {
+        score += 60;
+      }
+
+      // Tamil version preference ("place one song one time in tamil version")
+      if (lang === 'ta' || titleLower.includes('tamil') || s.lyrics?.includes('Tamil') || s.id.startsWith('tamil_')) {
+        score += 50;
+      }
+
+      // Penalize non-Tamil dubbed versions when comparing against Tamil
+      if (targetLanguage === 'ta' && (titleLower.includes('telugu') || titleLower.includes('hindi') || titleLower.includes('kannada'))) {
+        score -= 40;
+      }
+
+      // Audio stream quality
+      if (s.bitrate && s.bitrate >= 320) score += 20;
+      if (s.audioUrl && !s.audioUrl.includes('apple.com') && !s.audioUrl.includes('AudioPreview')) score += 20;
+      if (s.lyrics) score += 10;
+      if (s.duration && s.duration > 120) score += 10;
+
+      return score;
+    };
+
+    if (scoreSong(song) > scoreSong(existing)) {
+      map.set(key, song);
+    }
+  }
+
+  return Array.from(map.values());
+}

@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { musicApi } from '../../services/musicApi';
+import { jioSaavnApi } from '../../client-api/jiosaavn';
 import { Song } from '../../types/music';
 import { formatDuration } from '../../utils/formatDuration';
 import { FavoriteButton } from '../../components/FavoriteButton';
@@ -23,12 +24,33 @@ export default function SongDetailScreen() {
     async function load() {
       if (!songId) return;
       setLoading(true);
-      if (currentTrack && currentTrack.id === songId) {
+      const cleanId = decodeURIComponent(songId).trim();
+
+      if (currentTrack && (currentTrack.id === songId || currentTrack.id === cleanId)) {
         setSong(currentTrack);
         setLoading(false);
         return;
       }
-      const data = await musicApi.getSongById(songId);
+
+      let data = await musicApi.getSongById(songId);
+      if (!data && cleanId !== songId) {
+        data = await musicApi.getSongById(cleanId);
+      }
+
+      // If still not found, search with cleanId
+      if (!data) {
+        const query = cleanId
+          .replace(/saavn_|itunes_|yt_|mb_/g, '')
+          .replace(/_/g, ' ')
+          .trim();
+        if (query) {
+          const results = await jioSaavnApi.searchSongs(query, 3);
+          if (results.length > 0) {
+            data = results[0];
+          }
+        }
+      }
+
       setSong(data);
       setLoading(false);
     }

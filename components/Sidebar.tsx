@@ -73,10 +73,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
           activeOpacity={0.8}
           onPress={() => handleNav('/')}
         >
-          <View style={styles.brandIconBox}>
-            <Ionicons name="disc" size={22} color="#ffffff" />
+          <Image
+            source={require('../assets/icons/mastereo-logo.png')}
+            style={styles.brandLogo}
+            resizeMode="cover"
+          />
+          <View>
+            <Text style={styles.brandName}>{APP_CONFIG.APP_NAME}</Text>
+            <Text style={styles.brandTagline}>CLASSIC & MODERN</Text>
           </View>
-          <Text style={styles.brandName}>{APP_CONFIG.APP_NAME}</Text>
         </TouchableOpacity>
 
         {navItems.map((item) => {
@@ -278,19 +283,25 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 4
   },
-  brandIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: APP_CONFIG.THEME.accentPrimary,
-    justifyContent: 'center',
-    alignItems: 'center'
+  brandLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#eab308'
   },
   brandName: {
     fontSize: 16,
     fontWeight: '800',
     color: '#ffffff',
     letterSpacing: -0.2
+  },
+  brandTagline: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#eab308',
+    letterSpacing: 1.2,
+    marginTop: 1
   },
   navRow: {
     flexDirection: 'row',
