@@ -8,7 +8,8 @@ import {
   ScrollView,
   Modal,
   Dimensions,
-  TextInput
+  TextInput,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { usePlayer } from '../hooks/usePlayer';
@@ -37,6 +38,8 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onClose }) => {
     nextTrack,
     previousTrack,
     seekTo,
+    forward,
+    backward,
     togglePlaybackMode,
     playTrack
   } = usePlayer();
@@ -59,13 +62,23 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onClose }) => {
     );
   }
 
-  const progressPercent = duration > 0 ? (position / duration) * 100 : 0;
+  const totalDuration = duration || currentTrack.duration || 180;
+  const progressPercent = totalDuration > 0 ? (position / totalDuration) * 100 : 0;
 
   const handleSeekTouch = (e: any) => {
+    if (Platform.OS === 'web') {
+      const rect = e.currentTarget?.getBoundingClientRect?.();
+      if (rect && rect.width > 0) {
+        const clickX = e.clientX - rect.left;
+        const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+        seekTo(ratio * totalDuration);
+        return;
+      }
+    }
     const { locationX } = e.nativeEvent;
     const barWidth = width - 48;
-    const ratio = Math.max(0, Math.min(1, locationX / barWidth));
-    const targetSeconds = ratio * (duration || currentTrack.duration || 180);
+    const ratio = Math.max(0, Math.min(1, (locationX || 0) / barWidth));
+    const targetSeconds = ratio * totalDuration;
     seekTo(targetSeconds);
   };
 
@@ -206,7 +219,11 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onClose }) => {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.skipButton} onPress={previousTrack}>
-            <Ionicons name="play-skip-back" size={28} color={APP_CONFIG.THEME.textPrimary} />
+            <Ionicons name="play-skip-back" size={26} color={APP_CONFIG.THEME.textPrimary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.skipButton} onPress={() => backward(10)}>
+            <Ionicons name="play-back" size={22} color={APP_CONFIG.THEME.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.mainPlayButton} onPress={togglePlayPause}>
@@ -217,8 +234,12 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onClose }) => {
             />
           </TouchableOpacity>
 
+          <TouchableOpacity style={styles.skipButton} onPress={() => forward(10)}>
+            <Ionicons name="play-forward" size={22} color={APP_CONFIG.THEME.textSecondary} />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.skipButton} onPress={nextTrack}>
-            <Ionicons name="play-skip-forward" size={28} color={APP_CONFIG.THEME.textPrimary} />
+            <Ionicons name="play-skip-forward" size={26} color={APP_CONFIG.THEME.textPrimary} />
           </TouchableOpacity>
 
           <TouchableOpacity

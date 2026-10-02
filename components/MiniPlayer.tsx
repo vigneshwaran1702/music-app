@@ -9,14 +9,37 @@ import { FavoriteButton } from './FavoriteButton';
 export const MiniPlayer: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const { currentTrack, isPlaying, togglePlayPause, nextTrack, position, duration } = usePlayer();
+  const {
+    currentTrack,
+    isPlaying,
+    togglePlayPause,
+    nextTrack,
+    previousTrack,
+    forward,
+    backward,
+    seekTo,
+    position,
+    duration
+  } = usePlayer();
 
   // Hide mini player on full-screen player screen
   if (!currentTrack || pathname === '/player') {
     return null;
   }
 
-  const progressPercent = duration > 0 ? (position / duration) * 100 : 0;
+  const totalDuration = duration || currentTrack.duration || 180;
+  const progressPercent = totalDuration > 0 ? (position / totalDuration) * 100 : 0;
+
+  const handleMiniBarClick = (e: any) => {
+    e.stopPropagation?.();
+    if (Platform.OS === 'web' && totalDuration > 0) {
+      const rect = e.currentTarget?.getBoundingClientRect?.();
+      if (rect && rect.width > 0) {
+        const clickX = e.clientX - rect.left;
+        seekTo((clickX / rect.width) * totalDuration);
+      }
+    }
+  };
 
   return (
     <TouchableOpacity
@@ -25,9 +48,13 @@ export const MiniPlayer: React.FC = () => {
       onPress={() => router.push('/player')}
     >
       {/* Mini Progress Bar */}
-      <View style={styles.progressBarBackground}>
+      <TouchableOpacity
+        style={styles.progressBarBackground}
+        activeOpacity={0.9}
+        onPress={handleMiniBarClick}
+      >
         <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
-      </View>
+      </TouchableOpacity>
 
       <View style={styles.content}>
         <Image source={{ uri: currentTrack.coverUrl }} style={styles.cover} />
@@ -45,6 +72,16 @@ export const MiniPlayer: React.FC = () => {
           <FavoriteButton song={currentTrack} size={20} />
 
           <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              backward(10);
+            }}
+          >
+            <Ionicons name="play-back" size={17} color={APP_CONFIG.THEME.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={styles.playButton}
             onPress={(e) => {
               e.stopPropagation?.();
@@ -59,13 +96,23 @@ export const MiniPlayer: React.FC = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              forward(10);
+            }}
+          >
+            <Ionicons name="play-forward" size={17} color={APP_CONFIG.THEME.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={styles.nextButton}
             onPress={(e) => {
               e.stopPropagation?.();
               nextTrack();
             }}
           >
-            <Ionicons name="play-skip-forward" size={20} color={APP_CONFIG.THEME.textSecondary} />
+            <Ionicons name="play-skip-forward" size={19} color={APP_CONFIG.THEME.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -141,6 +188,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 4
   },
   nextButton: {
+    padding: 6,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  actionBtn: {
     padding: 6,
     justifyContent: 'center',
     alignItems: 'center'
