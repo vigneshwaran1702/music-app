@@ -8,6 +8,7 @@
     "android": "expo start --android --clear",
     "ios": "expo start --ios --clear",
     "web": "expo start --web --clear",
+    "build": "expo export --platform web",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
