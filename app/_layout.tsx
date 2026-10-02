@@ -18,10 +18,10 @@ function AppLayout() {
   const pathname = usePathname();
   const isFullScreenPlayer = pathname === '/player';
 
-  // Inject sleek dark styles and set Mastereo title/icon on Web
+  // Inject sleek dark styles and set Aura Music title/icon on Web
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      document.title = 'Mastereo - Classic & Modern Music';
+      document.title = 'Aura Music';
       let link = document.querySelector("link[rel*='icon']") as HTMLLinkElement | null;
       if (!link) {
         link = document.createElement('link');
@@ -94,7 +94,7 @@ function AppLayout() {
             <Stack.Screen
               name="index"
               options={{
-                title: 'Mastereo',
+                title: 'Aura Music',
                 headerShown: false
               }}
             />

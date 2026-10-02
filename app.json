@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Mastereo",
-    "slug": "mastereo",
+    "name": "Aura Music",
+    "slug": "aura-music",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icons/icon.png",
-    "scheme": "mastereo",
+    "scheme": "auramusic",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
