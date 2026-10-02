@@ -41,7 +41,7 @@ export const BottomNav: React.FC = () => {
                   source={require('../assets/icons/aura-logo.png')}
                   style={[
                     styles.tabLogoIcon,
-                    !isActive && styles.tabLogoIconInactive
+                    isActive ? styles.tabLogoIconActive : styles.tabLogoIconInactive
                   ]}
                   resizeMode="contain"
                 />
@@ -107,8 +107,13 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12
   },
+  tabLogoIconActive: {
+    opacity: 1,
+    borderWidth: 1.5,
+    borderColor: APP_CONFIG.THEME.accentPrimary
+  },
   tabLogoIconInactive: {
-    opacity: 0.5
+    opacity: 0.55
   },
   dot: {
     position: 'absolute',
