@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { artistApi } from '../../services/artistApi';
 import { Artist } from '../../types/artist';
+import { getArtistImage } from '../../constants/artistImages';
 import { SongCard } from '../../components/SongCard';
 import { Loading } from '../../components/Loading';
 import { usePlayer } from '../../hooks/usePlayer';
@@ -61,7 +62,7 @@ export default function ArtistDetailScreen() {
           end={{ x: 0, y: 1 }}
           style={styles.heroBox}
         >
-          <Image source={{ uri: artist.imageUrl }} style={styles.heroImage} />
+          <Image source={{ uri: getArtistImage(artist.name, artist.imageUrl) }} style={styles.heroImage} />
 
           <View style={styles.heroMeta}>
             <View style={styles.verifiedRow}>

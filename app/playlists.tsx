@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,12 +17,23 @@ import { usePlayer } from '../hooks/usePlayer';
 import { SongCard } from '../components/SongCard';
 import { Loading } from '../components/Loading';
 import { SpotifyImportModal } from '../components/SpotifyImportModal';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Playlist } from '../types/playlist';
+import { getPlaylistCover } from '../constants/artistImages';
 
 export default function PlaylistsScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{ id?: string; playlistId?: string }>();
   const { playlists, loading, createPlaylist, deletePlaylist, refresh } = usePlaylists();
   const { playTrack } = usePlayer();
   const [activePlaylist, setActivePlaylist] = useState<Playlist | null>(null);
+
+  useEffect(() => {
+    const targetId = params.playlistId || params.id;
+    if (targetId) {
+      router.replace(`/playlist/${targetId}` as any);
+    }
+  }, [params.id, params.playlistId]);
   const [modalVisible, setModalVisible] = useState(false);
   const [showSpotifyModal, setShowSpotifyModal] = useState(false);
   const [title, setTitle] = useState('');
@@ -53,7 +64,7 @@ export default function PlaylistsScreen() {
             end={{ x: 0, y: 1 }}
             style={styles.plHero}
           >
-            <Image source={{ uri: activePlaylist.coverUrl }} style={styles.plHeaderCover} />
+            <Image source={{ uri: getPlaylistCover(activePlaylist) }} style={styles.plHeaderCover} />
             <View style={styles.plMetaCol}>
               <Text style={styles.plTypeLabel}>PLAYLIST</Text>
               <Text style={styles.plHeaderTitle}>{activePlaylist.title}</Text>
@@ -140,10 +151,10 @@ export default function PlaylistsScreen() {
               <TouchableOpacity
                 key={pl.id}
                 style={styles.playlistCard}
-                onPress={() => setActivePlaylist(pl)}
+                onPress={() => router.push(`/playlist/${pl.id}` as any)}
                 activeOpacity={0.8}
               >
-                <Image source={{ uri: pl.coverUrl }} style={styles.cardCover} />
+                <Image source={{ uri: getPlaylistCover(pl) }} style={styles.cardCover} />
                 <View style={styles.cardInfo}>
                   <Text style={styles.cardTitle}>{pl.title}</Text>
                   <Text style={styles.cardMeta}>Playlist • {pl.tracks.length} songs</Text>

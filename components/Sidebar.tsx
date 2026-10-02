@@ -13,6 +13,7 @@ import { APP_CONFIG } from '../constants/config';
 import { playlistsDb } from '../database/playlists';
 import { favoritesDb } from '../database/favorites';
 import { Playlist } from '../types/playlist';
+import { getPlaylistCover } from '../constants/artistImages';
 import { CreatePlaylistModal } from './CreatePlaylistModal';
 
 interface SidebarProps {
@@ -214,10 +215,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
             <TouchableOpacity
               key={pl.id}
               style={styles.playlistRowItem}
-              onPress={() => handleNav('/playlists')}
+              onPress={() => handleNav(`/playlist/${pl.id}`)}
               activeOpacity={0.7}
             >
-              <Image source={{ uri: pl.coverUrl }} style={styles.playlistCover} />
+              <Image source={{ uri: getPlaylistCover(pl) }} style={styles.playlistCover} />
               <View style={styles.playlistMeta}>
                 <Text numberOfLines={1} style={styles.playlistTitle}>
                   {pl.title}

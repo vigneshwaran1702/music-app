@@ -3,6 +3,7 @@ import { itunesApi } from '../client-api/itunes';
 import { youtubeApi } from '../client-api/youtube';
 import { musicBrainzApi } from '../client-api/musicbrainz';
 import { CURATED_FEATURED_SONGS, CURATED_ALBUMS, CURATED_ARTISTS } from '../client-api/sources';
+import { getArtistImage } from '../constants/artistImages';
 import { Song } from '../types/music';
 import { Artist } from '../types/artist';
 import { Album } from '../types/album';
@@ -175,7 +176,10 @@ export const musicApi = {
       for (const a of combinedArtists) {
         const key = a.name.toLowerCase().trim();
         if (!artistMap.has(key)) {
-          artistMap.set(key, a);
+          artistMap.set(key, {
+            ...a,
+            imageUrl: getArtistImage(a.name, a.imageUrl)
+          });
         }
       }
 
@@ -215,6 +219,42 @@ export const musicApi = {
         albums: CURATED_ALBUMS
       };
     }
+  },
+
+  async getSongById(songId: string): Promise<Song | null> {
+    if (!songId) return null;
+
+    // 1. Check verified curated songs catalog
+    const curated = CURATED_FEATURED_SONGS.find((s) => s.id === songId);
+    if (curated) return curated;
+
+    // 2. Check JioSaavn by ID
+    if (songId.startsWith('saavn_')) {
+      const cleanId = songId.replace('saavn_', '');
+      try {
+        const details = await jioSaavnApi.getSongDetails(cleanId);
+        if (details) return details;
+      } catch {
+        // ignore
+      }
+    }
+
+    // 3. Fallback search by cleaned song query
+    try {
+      const cleanName = decodeURIComponent(
+        songId
+          .replace('saavn_', '')
+          .replace('itunes_', '')
+          .replace('yt_', '')
+          .replace(/_/g, ' ')
+      );
+      const results = await jioSaavnApi.searchSongs(cleanName, 5);
+      if (results.length > 0) return results[0];
+    } catch {
+      // ignore
+    }
+
+    return null;
   },
 
   async getSongsByLanguage(langCode: string, limit = 50): Promise<Song[]> {
@@ -327,33 +367,6 @@ export const musicApi = {
     }
   },
 
-  async getSongById(songId: string): Promise<Song | null> {
-    const foundCurated = CURATED_FEATURED_SONGS.find((s) => s.id === songId);
-    if (foundCurated) return foundCurated;
-
-    if (songId.startsWith('saavn_')) {
-      const details = await jioSaavnApi.getSongDetails(songId);
-      if (details) return details;
-    }
-
-    try {
-      const clean = songId
-        .replace('saavn_', '')
-        .replace('mb_', '')
-        .replace('itunes_', '')
-        .replace('yt_', '')
-        .replace('jamendo_', '');
-      const list = await jioSaavnApi.searchSongs(clean, 5);
-      const matched = list.find((s) => s.id === songId);
-      if (matched) return matched;
-      if (list.length > 0) return list[0];
-    } catch {
-      // ignore
-    }
-
-    return null;
-  },
-
   async getTamilHubData(): Promise<{
     trending: Song[];
     hits: Song[];
@@ -406,6 +419,28 @@ export const musicApi = {
 
       const fallbackTamil = CURATED_FEATURED_SONGS.filter((s) => s.language === 'ta');
 
+      const tamilTopArtists = CURATED_ARTISTS.filter(
+        (a) =>
+          a.genres.some((g) =>
+            ['kollywood', 'carnatic', 'kuthu', 'folk', 'bgm', 'melody'].includes(g.toLowerCase())
+          ) ||
+          [
+            'artist_anirudh',
+            'artist_arrahman',
+            'artist_yuvan',
+            'artist_harris',
+            'artist_ilayaraja',
+            'artist_sidsriram',
+            'artist_santhosh',
+            'artist_spb',
+            'artist_saiabhyankkar',
+            'artist_sushin'
+          ].includes(a.id)
+      ).map((a) => ({
+        ...a,
+        imageUrl: getArtistImage(a.name, a.imageUrl)
+      }));
+
       return {
         trending: dedupe([...ytTrending, ...trending, ...fallbackTamil]).length > 0 ? dedupe([...ytTrending, ...trending, ...fallbackTamil]) : fallbackTamil,
         hits: dedupe([...ytHits, ...hits, ...fallbackTamil]).length > 0 ? dedupe([...ytHits, ...hits, ...fallbackTamil]) : fallbackTamil,
@@ -415,11 +450,17 @@ export const musicApi = {
         melody: dedupe(melody).length > 0 ? dedupe(melody) : fallbackTamil,
         folk: dedupe(folk).length > 0 ? dedupe(folk) : fallbackTamil,
         classics: dedupe(classics).length > 0 ? dedupe(classics) : fallbackTamil,
-        topArtists: artists.length > 0 ? artists : CURATED_ARTISTS
+        topArtists: tamilTopArtists
       };
     } catch (error) {
       console.warn('[MusicApi] getTamilHubData error:', error);
       const fallbackTamil = CURATED_FEATURED_SONGS.filter((s) => s.language === 'ta');
+      const fallbackTamilArtists = CURATED_ARTISTS.filter((a) =>
+        ['artist_anirudh', 'artist_arrahman', 'artist_yuvan', 'artist_harris', 'artist_ilayaraja', 'artist_sidsriram'].includes(a.id)
+      ).map((a) => ({
+        ...a,
+        imageUrl: getArtistImage(a.name, a.imageUrl)
+      }));
       return {
         trending: fallbackTamil,
         hits: fallbackTamil,
@@ -429,7 +470,7 @@ export const musicApi = {
         melody: fallbackTamil,
         folk: fallbackTamil,
         classics: fallbackTamil,
-        topArtists: CURATED_ARTISTS
+        topArtists: fallbackTamilArtists
       };
     }
   }

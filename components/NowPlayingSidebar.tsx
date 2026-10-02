@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { usePlayer } from '../hooks/usePlayer';
 import { APP_CONFIG } from '../constants/config';
+import { getArtistImage } from '../constants/artistImages';
 import { FavoriteButton } from './FavoriteButton';
 
 export const NowPlayingSidebar: React.FC = () => {
@@ -106,7 +107,7 @@ export const NowPlayingSidebar: React.FC = () => {
           <Text style={styles.cardSectionLabel}>ABOUT THE ARTIST</Text>
           <View style={styles.artistMiniRow}>
             <Image
-              source={{ uri: currentTrack.coverUrl }}
+              source={{ uri: getArtistImage(currentTrack.artistName, currentTrack.coverUrl) }}
               style={styles.artistAvatar}
             />
             <View style={styles.artistMiniMeta}>

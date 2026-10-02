@@ -18,8 +18,8 @@ export function usePlaylists() {
     loadPlaylists();
   }, [loadPlaylists]);
 
-  const createPlaylist = async (title: string, description?: string) => {
-    const pl = await playlistsDb.createPlaylist(title, description);
+  const createPlaylist = async (title: string, description?: string, coverUrl?: string) => {
+    const pl = await playlistsDb.createPlaylist(title, description, coverUrl);
     await loadPlaylists();
     return pl;
   };

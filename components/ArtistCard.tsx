@@ -3,6 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Artist } from '../types/artist';
+import { getArtistImage } from '../constants/artistImages';
 
 interface ArtistCardProps {
   artist: Artist;
@@ -18,6 +19,8 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({ artist, size = 140, show
     router.push(`/artist/${artist.id}` as any);
   };
 
+  const resolvedImage = getArtistImage(artist.name, artist.imageUrl);
+
   return (
     <TouchableOpacity
       activeOpacity={0.85}
@@ -32,7 +35,7 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({ artist, size = 140, show
       onMouseLeave={() => setIsHovered(false)}
     >
       <View style={[styles.avatarWrapper, { width: size, height: size, borderRadius: size / 2 }]}>
-        <Image source={{ uri: artist.imageUrl }} style={styles.avatar} />
+        <Image source={{ uri: resolvedImage }} style={styles.avatar} />
         <View style={[styles.floatingPlayBtn, isHovered && styles.floatingPlayBtnVisible]}>
           <Ionicons name="play" size={20} color="#000000" />
         </View>

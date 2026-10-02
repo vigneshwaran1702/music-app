@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { spotifyApi, SpotifyUserProfile } from '../client-api/spotify';
 import { playlistsDb } from '../database/playlists';
 import { Song } from '../types/music';
+import { DEFAULT_PLAYLIST_COVER } from '../constants/artistImages';
 
 interface SpotifyImportModalProps {
   visible: boolean;
@@ -106,7 +107,8 @@ export const SpotifyImportModal: React.FC<SpotifyImportModalProps> = ({
 
       const newPl = await playlistsDb.createPlaylist(
         customName || details.name,
-        `Imported from Spotify (${resolvedSongs.length} playable tracks)`
+        `Imported from Spotify (${resolvedSongs.length} playable tracks)`,
+        details.coverUrl || resolvedSongs[0]?.coverUrl
       );
 
       for (const song of resolvedSongs) {
@@ -247,7 +249,7 @@ export const SpotifyImportModal: React.FC<SpotifyImportModalProps> = ({
                       source={{
                         uri:
                           pl.images?.[0]?.url ||
-                          'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80'
+                          DEFAULT_PLAYLIST_COVER
                       }}
                       style={styles.playlistThumb}
                     />

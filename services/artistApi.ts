@@ -5,21 +5,18 @@ import { itunesApi } from '../client-api/itunes';
 import { youtubeApi } from '../client-api/youtube';
 import { Artist } from '../types/artist';
 import { Song } from '../types/music';
+import { getArtistImage, isValidImage } from '../constants/artistImages';
 
 export const artistApi = {
   async getAllArtists(): Promise<Artist[]> {
     try {
-      const [saavnArtists, itunesArtists] = await Promise.all([
-        jioSaavnApi.searchArtists('Anirudh AR Rahman Arijit Singh Diljit Coldplay Taylor Swift', 25).catch(() => []),
-        itunesApi.searchArtists('Top Artists 2024', 20).catch(() => [])
-      ]);
-
       const map = new Map<string, Artist>();
-      for (const a of [...CURATED_ARTISTS, ...saavnArtists, ...itunesArtists]) {
+      for (const a of CURATED_ARTISTS) {
         const key = a.name.toLowerCase().trim();
-        if (!map.has(key)) {
-          map.set(key, a);
-        }
+        map.set(key, {
+          ...a,
+          imageUrl: getArtistImage(a.name, a.imageUrl)
+        });
       }
       return Array.from(map.values());
     } catch {
@@ -64,6 +61,7 @@ export const artistApi = {
 
         return {
           ...artist,
+          imageUrl: getArtistImage(artist.name, artist.imageUrl),
           bio: mbData?.bio || artist.bio,
           genres: mbData?.genres?.length ? mbData.genres : artist.genres,
           topTracks: finalSongs,
@@ -73,6 +71,7 @@ export const artistApi = {
         const songs = CURATED_FEATURED_SONGS.filter((s) => s.artistId === artistId);
         return {
           ...artist,
+          imageUrl: getArtistImage(artist.name, artist.imageUrl),
           topTracks: songs,
           albumCount: 5
         };
@@ -89,11 +88,12 @@ export const artistApi = {
           .replace(/_/g, ' ')
       );
 
-      const [saavnSongs, liveYt, itunesSongs, mbData] = await Promise.all([
+      const [saavnSongs, liveYt, itunesSongs, mbData, saavnArtists] = await Promise.all([
         jioSaavnApi.searchSongs(cleanName, 35),
         youtubeApi.searchSongs(`${cleanName} hits`, 15),
         itunesApi.searchSongs(cleanName, 15),
-        musicBrainzApi.getArtistDetails(cleanName)
+        musicBrainzApi.getArtistDetails(cleanName),
+        jioSaavnApi.searchArtists(cleanName, 1).catch(() => [])
       ]);
 
       const matchingCurated = CURATED_FEATURED_SONGS.filter((s) =>
@@ -117,9 +117,12 @@ export const artistApi = {
 
       const finalSongs = songs.length > 0 ? songs : matchingCurated;
       const primaryArtistName = finalSongs[0]?.artistName || cleanName;
-      const primaryImage =
-        finalSongs[0]?.coverUrl ||
-        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80';
+
+      // Always resolve genuine artist portrait (never song cover)
+      let primaryImage = getArtistImage(primaryArtistName);
+      if (!isValidImage(primaryImage) && saavnArtists.length > 0 && isValidImage(saavnArtists[0].imageUrl)) {
+        primaryImage = saavnArtists[0].imageUrl;
+      }
 
       return {
         id: artistId,
