@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { APP_CONFIG } from '../constants/config';
@@ -12,7 +12,7 @@ export const BottomNav: React.FC = () => {
   if (pathname === '/player') return null;
 
   const tabs = [
-    { label: 'Home', icon: 'home', iconOutline: 'home-outline', route: '/' },
+    { label: 'Home', isLogo: true, route: '/' },
     { label: 'Search', icon: 'search', iconOutline: 'search-outline', route: '/search' },
     {
       label: 'Tamil',
@@ -36,17 +36,28 @@ export const BottomNav: React.FC = () => {
             activeOpacity={0.7}
           >
             <View style={styles.iconWrapper}>
-              <Ionicons
-                name={(isActive ? tab.icon : tab.iconOutline) as any}
-                size={22}
-                color={
-                  isActive
-                    ? tab.highlight
-                      ? APP_CONFIG.THEME.accentTamil
-                      : APP_CONFIG.THEME.accentPrimary
-                    : APP_CONFIG.THEME.textMuted
-                }
-              />
+              {tab.isLogo ? (
+                <Image
+                  source={require('../assets/icons/aura-logo.png')}
+                  style={[
+                    styles.tabLogoIcon,
+                    !isActive && styles.tabLogoIconInactive
+                  ]}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Ionicons
+                  name={(isActive ? tab.icon : tab.iconOutline) as any}
+                  size={22}
+                  color={
+                    isActive
+                      ? tab.highlight
+                        ? APP_CONFIG.THEME.accentTamil
+                        : APP_CONFIG.THEME.accentPrimary
+                      : APP_CONFIG.THEME.textMuted
+                  }
+                />
+              )}
               {tab.highlight && (
                 <View style={styles.dot} />
               )}
@@ -90,6 +101,14 @@ const styles = StyleSheet.create({
   },
   iconWrapper: {
     position: 'relative'
+  },
+  tabLogoIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12
+  },
+  tabLogoIconInactive: {
+    opacity: 0.5
   },
   dot: {
     position: 'absolute',
