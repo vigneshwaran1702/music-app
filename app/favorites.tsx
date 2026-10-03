@@ -3,13 +3,17 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useFavorites } from '../hooks/useFavorites';
 import { usePlayer } from '../hooks/usePlayer';
+import { useResponsive } from '../hooks/useResponsive';
 import { SongCard } from '../components/SongCard';
 import { Loading } from '../components/Loading';
 import { shuffleArray } from '../utils/filterMusic';
 
 export default function FavoritesScreen() {
+  const router = useRouter();
+  const { isMobile } = useResponsive();
   const { favorites, loading } = useFavorites();
   const { playTrack } = usePlayer();
 
@@ -21,21 +25,35 @@ export default function FavoritesScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, isMobile && { paddingBottom: 170 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Back navigation */}
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
+          <Ionicons name="arrow-back" size={22} color="#ffffff" />
+          <Text style={styles.backBtnText}>Back</Text>
+        </TouchableOpacity>
+
         {/* Spotify Liked Songs Hero Header */}
         <LinearGradient
           colors={['#5038a0', '#2e1c6a', '#121212']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={styles.heroHeader}
+          style={[
+            styles.heroHeader,
+            isMobile && { flexDirection: 'column', alignItems: 'center', paddingTop: 16, paddingBottom: 20, gap: 14 }
+          ]}
         >
-          <View style={styles.likedHeroThumb}>
-            <Ionicons name="heart" size={64} color="#ffffff" />
+          <View style={[styles.likedHeroThumb, isMobile && { width: 120, height: 120 }]}>
+            <Ionicons name="heart" size={isMobile ? 52 : 64} color="#ffffff" />
           </View>
 
-          <View style={styles.heroMeta}>
+          <View style={[styles.heroMeta, isMobile && { alignItems: 'center' }]}>
             <Text style={styles.playlistTypeLabel}>PLAYLIST</Text>
-            <Text style={styles.heroTitle}>Liked Songs</Text>
+            <Text style={[styles.heroTitle, isMobile && { fontSize: 28, textAlign: 'center', marginBottom: 6 }]}>
+              Liked Songs
+            </Text>
             <View style={styles.heroSubRow}>
               <Text style={styles.heroAuthor}>You</Text>
               <Text style={styles.heroDot}>•</Text>
@@ -46,7 +64,7 @@ export default function FavoritesScreen() {
 
         {/* Action Controls Bar */}
         {favorites.length > 0 && (
-          <View style={styles.actionsBar}>
+          <View style={[styles.actionsBar, isMobile && { paddingHorizontal: 16 }]}>
             <TouchableOpacity
               style={styles.bigGreenPlayBtn}
               onPress={() => handlePlayAll(false)}
@@ -100,6 +118,19 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 120
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 8
+  },
+  backBtnText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 14
   },
   heroHeader: {
     flexDirection: 'row',

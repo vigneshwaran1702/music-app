@@ -224,7 +224,7 @@ export default function HomeScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isMobile && { paddingBottom: 170 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -239,10 +239,12 @@ export default function HomeScreen() {
           colors={['#1e3a5f', '#142033', '#121212']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={styles.ambientBackdrop}
+          style={[styles.ambientBackdrop, isMobile && { paddingHorizontal: 16 }]}
         >
           {/* Greeting */}
-          <Text style={styles.greetingHeading}>{getGreeting()}</Text>
+          <Text style={[styles.greetingHeading, isMobile && { fontSize: 24, marginBottom: 14 }]}>
+            {getGreeting()}
+          </Text>
 
           {/* Scalable Pinned Quick Access Grid */}
           <View style={styles.quickAccessGrid}>
@@ -257,24 +259,26 @@ export default function HomeScreen() {
                 onPress={() => router.push(item.route as any)}
               >
                 <View style={[styles.quickTileThumb, { backgroundColor: item.bg }]}>
-                  <Ionicons name={item.icon as any} size={22} color="#ffffff" />
+                  <Ionicons name={item.icon as any} size={20} color="#ffffff" />
                 </View>
 
-                <Text numberOfLines={1} style={styles.quickTileTitle}>
+                <Text numberOfLines={isMobile ? 2 : 1} style={[styles.quickTileTitle, isMobile && { fontSize: 12, marginLeft: 8 }]}>
                   {item.title}
                 </Text>
 
-                <TouchableOpacity
-                  style={styles.quickTilePlayBtn}
-                  onPress={(e) => {
-                    e.stopPropagation?.();
-                    if (item.songs && item.songs.length > 0) {
-                      playTrack(item.songs[0], item.songs);
-                    }
-                  }}
-                >
-                  <Ionicons name="play" size={18} color="#000000" />
-                </TouchableOpacity>
+                {!isMobile && (
+                  <TouchableOpacity
+                    style={styles.quickTilePlayBtn}
+                    onPress={(e) => {
+                      e.stopPropagation?.();
+                      if (item.songs && item.songs.length > 0) {
+                        playTrack(item.songs[0], item.songs);
+                      }
+                    }}
+                  >
+                    <Ionicons name="play" size={18} color="#000000" />
+                  </TouchableOpacity>
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -286,7 +290,7 @@ export default function HomeScreen() {
           <View style={styles.sectionsContainer}>
             {/* 1. Tamil Music Spotlight Hub Banner */}
             <TouchableOpacity
-              style={styles.tamilHubBanner}
+              style={[styles.tamilHubBanner, isMobile && { marginHorizontal: 16 }]}
               activeOpacity={0.9}
               onPress={() => router.push('/tamil' as any)}
             >

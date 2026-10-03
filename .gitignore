@@ -14,7 +14,7 @@ expo-env.d.ts
 build/
 *.orig.*
 
-# Environment variables & secrets
+# Environment variables, API keys & secrets
 .env
 .env.*
 .env.local
@@ -22,6 +22,12 @@ build/
 .env.test.local
 .env.production.local
 !.env.example
+*.key
+*.pem
+*credentials*.json
+*secret*.json
+api_key*
+apikey*
 
 # Logs
 npm-debug.log*

@@ -2,12 +2,16 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useDownloads } from '../hooks/useDownloads';
 import { usePlayer } from '../hooks/usePlayer';
+import { useResponsive } from '../hooks/useResponsive';
 import { SongCard } from '../components/SongCard';
 import { Loading } from '../components/Loading';
 
 export default function DownloadsScreen() {
+  const router = useRouter();
+  const { isMobile } = useResponsive();
   const { downloads, loading, totalSize, removeDownload } = useDownloads();
   const { playTrack } = usePlayer();
 
@@ -21,9 +25,18 @@ export default function DownloadsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, isMobile && { padding: 16, paddingBottom: 170 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Back navigation */}
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
+          <Ionicons name="arrow-back" size={22} color="#ffffff" />
+          <Text style={styles.backBtnText}>Back</Text>
+        </TouchableOpacity>
+
         {/* Storage Card */}
-        <View style={styles.storageCard}>
+        <View style={[styles.storageCard, isMobile && { flexWrap: 'wrap', gap: 12 }]}>
           <View style={styles.storageInfo}>
             <Ionicons name="cloud-done" size={28} color="#1ed760" />
             <View style={styles.storageMeta}>
@@ -89,6 +102,18 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
     paddingBottom: 120
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginBottom: 8,
+    gap: 8
+  },
+  backBtnText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 14
   },
   storageCard: {
     backgroundColor: '#181818',

@@ -161,55 +161,64 @@ function AppLayout() {
             <Stack.Screen
               name="artists"
               options={{
-                title: 'Top Artists'
+                title: 'Top Artists',
+                headerShown: false
               }}
             />
             <Stack.Screen
               name="artist/[artistId]"
               options={{
-                title: 'Artist Profile'
+                title: 'Artist Profile',
+                headerShown: false
               }}
             />
             <Stack.Screen
               name="albums"
               options={{
-                title: 'Albums & EPs'
+                title: 'Albums & EPs',
+                headerShown: false
               }}
             />
             <Stack.Screen
               name="album/[albumId]"
               options={{
-                title: 'Album'
+                title: 'Album',
+                headerShown: false
               }}
             />
             <Stack.Screen
               name="playlists"
               options={{
-                title: 'Your Playlists'
+                title: 'Your Playlists',
+                headerShown: false
               }}
             />
             <Stack.Screen
               name="playlist/[playlistId]"
               options={{
-                title: 'Playlist'
+                title: 'Playlist',
+                headerShown: false
               }}
             />
             <Stack.Screen
               name="favorites"
               options={{
-                title: 'Liked Songs'
+                title: 'Liked Songs',
+                headerShown: false
               }}
             />
             <Stack.Screen
               name="downloads"
               options={{
-                title: 'Offline Downloads'
+                title: 'Offline Downloads',
+                headerShown: false
               }}
             />
             <Stack.Screen
               name="song/[songId]"
               options={{
-                title: 'Song Details'
+                title: 'Song Details',
+                headerShown: false
               }}
             />
             <Stack.Screen

@@ -17,12 +17,14 @@ import { Playlist } from '../../types/playlist';
 import { SongCard } from '../../components/SongCard';
 import { Loading } from '../../components/Loading';
 import { usePlayer } from '../../hooks/usePlayer';
+import { useResponsive } from '../../hooks/useResponsive';
 import { getPlaylistCover, isValidImage, DEFAULT_PLAYLIST_COVER } from '../../constants/artistImages';
 import { musicApi } from '../../services/musicApi';
 
 export default function PlaylistDetailScreen() {
   const { playlistId } = useLocalSearchParams<{ playlistId: string }>();
   const router = useRouter();
+  const { isMobile } = useResponsive();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPopulating, setIsPopulating] = useState(false);
@@ -153,7 +155,10 @@ export default function PlaylistDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, isMobile && { paddingBottom: 170 }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Back navigation */}
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
           <Ionicons name="arrow-back" size={22} color="#ffffff" />
@@ -165,11 +170,14 @@ export default function PlaylistDetailScreen() {
           colors={['#1e3a5f', '#142033', '#121212']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={styles.heroBox}
+          style={[
+            styles.heroBox,
+            isMobile && { flexDirection: 'column', alignItems: 'center', padding: 16, gap: 16 }
+          ]}
         >
-          <Image source={{ uri: coverUri }} style={styles.heroImage} />
+          <Image source={{ uri: coverUri }} style={[styles.heroImage, isMobile && { width: 150, height: 150 }]} />
 
-          <View style={styles.heroMeta}>
+          <View style={[styles.heroMeta, isMobile && { alignItems: 'center', minWidth: '100%' }]}>
             <View style={styles.badgeRow}>
               <View style={styles.typeBadge}>
                 <Text style={styles.typeBadgeText}>PLAYLIST</Text>
@@ -181,20 +189,20 @@ export default function PlaylistDetailScreen() {
               ) : null}
             </View>
 
-            <Text style={styles.heroTitle}>{playlist.title}</Text>
+            <Text style={[styles.heroTitle, isMobile && { fontSize: 24, textAlign: 'center' }]}>{playlist.title}</Text>
 
             {playlist.description ? (
-              <Text style={styles.heroDescription}>{playlist.description}</Text>
+              <Text style={[styles.heroDescription, isMobile && { textAlign: 'center' }]}>{playlist.description}</Text>
             ) : null}
 
-            <Text style={styles.heroMetaText}>
+            <Text style={[styles.heroMetaText, isMobile && { textAlign: 'center' }]}>
               {playlist.isCustom ? 'Created by You' : 'Curated Mix'} • {playlist.tracks.length} songs
             </Text>
           </View>
         </LinearGradient>
 
         {/* Action Controls Bar */}
-        <View style={styles.actionsBar}>
+        <View style={[styles.actionsBar, isMobile && { paddingHorizontal: 16, flexWrap: 'wrap', gap: 12 }]}>
           {playlist.tracks.length > 0 && (
             <TouchableOpacity
               style={styles.bigGreenPlayBtn}
@@ -229,7 +237,7 @@ export default function PlaylistDetailScreen() {
         </View>
 
         {/* Tracklist Section */}
-        <View style={styles.section}>
+        <View style={[styles.section, isMobile && { paddingHorizontal: 16 }]}>
           <Text style={styles.sectionTitle}>Tracks ({playlist.tracks.length})</Text>
 
           {playlist.tracks.length === 0 ? (

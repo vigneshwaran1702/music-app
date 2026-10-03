@@ -44,7 +44,7 @@ const SPOTIFY_BROWSE_CATEGORIES = [
 export default function SearchScreen() {
   const router = useRouter();
   const { playTrack } = usePlayer();
-  const { isDesktop, isTablet } = useResponsive();
+  const { isDesktop, isTablet, isMobile } = useResponsive();
   const [query, setQuery] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [loading, setLoading] = useState(false);
@@ -124,12 +124,12 @@ export default function SearchScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Search Header Bar */}
-      <View style={styles.header}>
+      <View style={[styles.header, isMobile && { paddingHorizontal: 12, paddingVertical: 10 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color="#ffffff" />
         </TouchableOpacity>
 
-        <View style={styles.searchBarWrapper}>
+        <View style={[styles.searchBarWrapper, isMobile && { maxWidth: '100%' }]}>
           <Ionicons name="search" size={20} color="#a7a7a7" style={styles.searchIcon} />
           <TextInput
             style={[
@@ -168,7 +168,7 @@ export default function SearchScreen() {
 
       {/* Filter Tabs */}
       {query.length > 0 && (
-        <View style={styles.filterRow}>
+        <View style={[styles.filterRow, isMobile && { paddingHorizontal: 12, gap: 6 }]}>
           {(['all', 'songs', 'artists', 'albums'] as FilterType[]).map((tab) => (
             <TouchableOpacity
               key={tab}
@@ -183,7 +183,10 @@ export default function SearchScreen() {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, isMobile && { paddingHorizontal: 12, paddingBottom: 170 }]}
+        showsVerticalScrollIndicator={false}
+      >
         {loading ? (
           /* Skeleton Loader */
           <View style={styles.skeletonContainer}>
@@ -392,7 +395,8 @@ export default function SearchScreen() {
                     style={[
                       styles.spotifyBrowseTile,
                       { backgroundColor: g.color },
-                      isDesktop ? styles.browseTileDesktop : isTablet ? styles.browseTileTablet : styles.browseTileMobile
+                      isDesktop ? styles.browseTileDesktop : isTablet ? styles.browseTileTablet : styles.browseTileMobile,
+                      isMobile && { height: 96, padding: 12 }
                     ]}
                     activeOpacity={0.85}
                     onPress={() => {
@@ -400,9 +404,9 @@ export default function SearchScreen() {
                       performSearch(g.query);
                     }}
                   >
-                    <Text style={styles.browseCategoryTitle}>{g.name}</Text>
+                    <Text style={[styles.browseCategoryTitle, isMobile && { fontSize: 15 }]}>{g.name}</Text>
                     <View style={styles.browseCategoryIconBox}>
-                      <Ionicons name={g.icon as any} size={32} color="rgba(255, 255, 255, 0.4)" />
+                      <Ionicons name={g.icon as any} size={isMobile ? 26 : 32} color="rgba(255, 255, 255, 0.4)" />
                     </View>
                   </TouchableOpacity>
                 ))}

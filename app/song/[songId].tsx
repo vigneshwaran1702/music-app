@@ -11,11 +11,13 @@ import { FavoriteButton } from '../../components/FavoriteButton';
 import { DownloadButton } from '../../components/DownloadButton';
 import { Loading } from '../../components/Loading';
 import { usePlayer } from '../../hooks/usePlayer';
+import { useResponsive } from '../../hooks/useResponsive';
 import { APP_CONFIG } from '../../constants/config';
 
 export default function SongDetailScreen() {
   const { songId } = useLocalSearchParams<{ songId: string }>();
   const router = useRouter();
+  const { isMobile } = useResponsive();
   const [song, setSong] = useState<Song | null>(null);
   const [loading, setLoading] = useState(true);
   const { playTrack, currentTrack, isPlaying, togglePlayPause } = usePlayer();
@@ -89,11 +91,20 @@ export default function SongDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, isMobile && { padding: 16, paddingBottom: 170 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Back navigation */}
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
+          <Ionicons name="arrow-back" size={22} color="#ffffff" />
+          <Text style={styles.backBtnText}>Back</Text>
+        </TouchableOpacity>
+
         {/* Cover & Basic Info */}
         <View style={styles.header}>
-          <Image source={{ uri: song.coverUrl }} style={styles.cover} />
-          <Text style={styles.title}>{song.title}</Text>
+          <Image source={{ uri: song.coverUrl }} style={[styles.cover, isMobile && { width: 170, height: 170 }]} />
+          <Text style={[styles.title, isMobile && { fontSize: 20 }]}>{song.title}</Text>
           <TouchableOpacity onPress={() => router.push(`/artist/${song.artistId}`)}>
             <Text style={styles.artist}>{song.artistName}</Text>
           </TouchableOpacity>
@@ -171,6 +182,18 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 110
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginBottom: 8,
+    gap: 8
+  },
+  backBtnText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 14
   },
   header: {
     alignItems: 'center',
