@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { musicApi } from '../services/musicApi';
 import { usePlayer } from '../hooks/usePlayer';
+import { useResponsive } from '../hooks/useResponsive';
 import { Song } from '../types/music';
 import { Artist } from '../types/artist';
 import { SongCard } from '../components/SongCard';
@@ -33,6 +34,7 @@ type TamilCategory =
 export default function TamilMusicHubScreen() {
   const router = useRouter();
   const { playTrack } = usePlayer();
+  const { isMobile } = useResponsive();
   const [activeCategory, setActiveCategory] = useState<TamilCategory>('all');
   const [loading, setLoading] = useState(true);
 
@@ -102,7 +104,7 @@ export default function TamilMusicHubScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isMobile && { paddingBottom: 170 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -117,7 +119,7 @@ export default function TamilMusicHubScreen() {
           colors={['#ea580c', '#9a3412', '#121212']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={styles.heroBanner}
+          style={[styles.heroBanner, isMobile && { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 24 }]}
         >
           <View style={styles.badgeRow}>
             <View style={styles.flagBadge}>
@@ -125,13 +127,13 @@ export default function TamilMusicHubScreen() {
             </View>
           </View>
 
-          <Text style={styles.heroTitle}>Tamil Chartbusters</Text>
+          <Text style={[styles.heroTitle, isMobile && { fontSize: 26 }]}>Tamil Chartbusters</Text>
           <Text style={styles.heroSubtitle}>
             Stream top tracks from Anirudh, AR Rahman, Yuvan, Harris Jayaraj, Santhosh Narayanan, and evergreen classics in 320kbps audio.
           </Text>
 
           {allSongsFlat.length > 0 && (
-            <View style={styles.heroActionRow}>
+            <View style={[styles.heroActionRow, isMobile && { flexWrap: 'wrap', gap: 10 }]}>
               <TouchableOpacity
                 style={styles.playAllBtn}
                 onPress={() => playTrack(heroSong || allSongsFlat[0], allSongsFlat)}

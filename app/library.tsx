@@ -29,7 +29,7 @@ type LibraryTab = 'playlists' | 'liked' | 'history' | 'downloads';
 export default function LibraryScreen() {
   const router = useRouter();
   const { playTrack } = usePlayer();
-  const { isDesktop, isTablet } = useResponsive();
+  const { isDesktop, isTablet, isMobile } = useResponsive();
   const [activeTab, setActiveTab] = useState<LibraryTab>('playlists');
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -74,7 +74,7 @@ export default function LibraryScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isMobile && { paddingBottom: 170 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -85,34 +85,34 @@ export default function LibraryScreen() {
         }
       >
         {/* Header Bar */}
-        <View style={styles.header}>
+        <View style={[styles.header, isMobile && { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 }]}>
           <View>
-            <Text style={styles.headerTitle}>Your Library</Text>
+            <Text style={[styles.headerTitle, isMobile && { fontSize: 24 }]}>Your Library</Text>
           </View>
 
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: isMobile ? 6 : 8 }}>
             <TouchableOpacity
-              style={[styles.createBtn, { backgroundColor: '#1db954' }]}
+              style={[styles.createBtn, { backgroundColor: '#1db954' }, isMobile && { paddingHorizontal: 10, paddingVertical: 7 }]}
               onPress={() => setShowSpotifyModal(true)}
               activeOpacity={0.8}
             >
-              <Ionicons name="cloud-download-outline" size={18} color="#000000" />
-              <Text style={styles.createBtnText}>Import Playlist</Text>
+              <Ionicons name="cloud-download-outline" size={17} color="#000000" />
+              <Text style={styles.createBtnText}>{isMobile ? 'Import' : 'Import Playlist'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.createBtn}
+              style={[styles.createBtn, isMobile && { paddingHorizontal: 10, paddingVertical: 7 }]}
               onPress={() => setShowCreateModal(true)}
               activeOpacity={0.8}
             >
-              <Ionicons name="add" size={20} color="#000000" />
-              <Text style={styles.createBtnText}>New Playlist</Text>
+              <Ionicons name="add" size={18} color="#000000" />
+              <Text style={styles.createBtnText}>{isMobile ? 'New' : 'New Playlist'}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Tab Filter Pills */}
-        <View style={styles.tabsRow}>
+        <View style={[styles.tabsRow, isMobile && { paddingHorizontal: 16, gap: 6, marginBottom: 16 }]}>
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -139,7 +139,7 @@ export default function LibraryScreen() {
 
         {/* Tab Content */}
         {activeTab === 'playlists' && (
-          <View style={styles.section}>
+          <View style={[styles.section, isMobile && { paddingHorizontal: 16 }]}>
             {playlists.length === 0 ? (
               <View style={styles.emptyCard}>
                 <Ionicons name="musical-notes-outline" size={48} color="#a7a7a7" />
@@ -181,7 +181,7 @@ export default function LibraryScreen() {
         )}
 
         {activeTab === 'liked' && (
-          <View style={styles.section}>
+          <View style={[styles.section, isMobile && { paddingHorizontal: 16 }]}>
             {likedSongs.length > 0 && (
               <TouchableOpacity
                 style={styles.playCollectionBtn}
@@ -220,7 +220,7 @@ export default function LibraryScreen() {
         )}
 
         {activeTab === 'history' && (
-          <View style={styles.section}>
+          <View style={[styles.section, isMobile && { paddingHorizontal: 16 }]}>
             {recentSongs.length > 0 && (
               <TouchableOpacity
                 style={styles.playCollectionBtn}
@@ -259,7 +259,7 @@ export default function LibraryScreen() {
         )}
 
         {activeTab === 'downloads' && (
-          <View style={styles.section}>
+          <View style={[styles.section, isMobile && { paddingHorizontal: 16 }]}>
             {downloads.length === 0 ? (
               <View style={styles.emptyCard}>
                 <Ionicons name="cloud-download-outline" size={48} color="#a7a7a7" />

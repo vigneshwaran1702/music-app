@@ -18,11 +18,13 @@ import { SongCard } from '../components/SongCard';
 import { Loading } from '../components/Loading';
 import { SpotifyImportModal } from '../components/SpotifyImportModal';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useResponsive } from '../hooks/useResponsive';
 import { Playlist } from '../types/playlist';
 import { getPlaylistCover } from '../constants/artistImages';
 
 export default function PlaylistsScreen() {
   const router = useRouter();
+  const { isMobile } = useResponsive();
   const params = useLocalSearchParams<{ id?: string; playlistId?: string }>();
   const { playlists, loading, createPlaylist, deletePlaylist, refresh } = usePlaylists();
   const { playTrack } = usePlayer();
@@ -50,7 +52,10 @@ export default function PlaylistsScreen() {
   if (activePlaylist) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[styles.content, isMobile && { paddingBottom: 170 }]}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Back button */}
           <TouchableOpacity style={styles.backBtn} onPress={() => setActivePlaylist(null)}>
             <Ionicons name="arrow-back" size={22} color="#ffffff" />
@@ -62,16 +67,26 @@ export default function PlaylistsScreen() {
             colors={['#1e3a5f', '#121212']}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
-            style={styles.plHero}
+            style={[
+              styles.plHero,
+              isMobile && { flexDirection: 'column', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20, gap: 16 }
+            ]}
           >
-            <Image source={{ uri: getPlaylistCover(activePlaylist) }} style={styles.plHeaderCover} />
-            <View style={styles.plMetaCol}>
+            <Image
+              source={{ uri: getPlaylistCover(activePlaylist) }}
+              style={[styles.plHeaderCover, isMobile && { width: 140, height: 140 }]}
+            />
+            <View style={[styles.plMetaCol, isMobile && { alignItems: 'center' }]}>
               <Text style={styles.plTypeLabel}>PLAYLIST</Text>
-              <Text style={styles.plHeaderTitle}>{activePlaylist.title}</Text>
+              <Text style={[styles.plHeaderTitle, isMobile && { fontSize: 24, textAlign: 'center' }]}>
+                {activePlaylist.title}
+              </Text>
               {activePlaylist.description ? (
-                <Text style={styles.plHeaderDesc}>{activePlaylist.description}</Text>
+                <Text style={[styles.plHeaderDesc, isMobile && { textAlign: 'center' }]}>{activePlaylist.description}</Text>
               ) : null}
-              <Text style={styles.plHeaderMeta}>Created by You • {activePlaylist.tracks.length} songs</Text>
+              <Text style={[styles.plHeaderMeta, isMobile && { textAlign: 'center' }]}>
+                Created by You • {activePlaylist.tracks.length} songs
+              </Text>
             </View>
           </LinearGradient>
 
@@ -149,20 +164,23 @@ export default function PlaylistsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.topRow}>
+      <ScrollView
+        contentContainerStyle={[styles.content, isMobile && { paddingBottom: 170 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.topRow, isMobile && { paddingHorizontal: 16, paddingTop: 14, marginBottom: 14, flexWrap: 'wrap', gap: 12 }]}>
           <View>
-            <Text style={styles.headerTitle}>Your Playlists</Text>
+            <Text style={[styles.headerTitle, isMobile && { fontSize: 24 }]}>Your Playlists</Text>
             <Text style={styles.headerSubtitle}>Separated language playlists, curated mixes & artist hits.</Text>
           </View>
-          <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TouchableOpacity
-              style={[styles.addBtn, { backgroundColor: '#1db954', width: 'auto', paddingHorizontal: 14, borderRadius: 20, flexDirection: 'row', gap: 6 }]}
+              style={[styles.addBtn, { backgroundColor: '#1db954', width: 'auto', paddingHorizontal: 12, borderRadius: 20, flexDirection: 'row', gap: 6 }]}
               onPress={() => setShowSpotifyModal(true)}
               activeOpacity={0.85}
             >
-              <Ionicons name="cloud-download-outline" size={18} color="#000000" />
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#000000' }}>Import Playlist</Text>
+              <Ionicons name="cloud-download-outline" size={17} color="#000000" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#000000' }}>{isMobile ? 'Import' : 'Import Playlist'}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -176,7 +194,7 @@ export default function PlaylistsScreen() {
         </View>
 
         {/* Filter Pills */}
-        <View style={styles.filterPillsRow}>
+        <View style={[styles.filterPillsRow, isMobile && { paddingHorizontal: 16, gap: 6 }]}>
           <TouchableOpacity
             style={[styles.filterPill, filter === 'all' && styles.filterPillActive]}
             onPress={() => setFilter('all')}
@@ -225,7 +243,7 @@ export default function PlaylistsScreen() {
 
         {/* Artist Playlist CTA Banner */}
         <TouchableOpacity
-          style={styles.artistBannerCTA}
+          style={[styles.artistBannerCTA, isMobile && { marginHorizontal: 16 }]}
           onPress={() => router.push('/artists')}
           activeOpacity={0.85}
         >
@@ -259,7 +277,7 @@ export default function PlaylistsScreen() {
             </Text>
           </View>
         ) : (
-          <View style={styles.list}>
+          <View style={[styles.list, isMobile && { paddingHorizontal: 16 }]}>
             {filteredPlaylists.map((pl) => (
               <TouchableOpacity
                 key={pl.id}

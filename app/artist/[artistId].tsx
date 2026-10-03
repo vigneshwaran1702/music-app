@@ -18,11 +18,13 @@ import { getArtistImage } from '../../constants/artistImages';
 import { SongCard } from '../../components/SongCard';
 import { Loading } from '../../components/Loading';
 import { usePlayer } from '../../hooks/usePlayer';
+import { useResponsive } from '../../hooks/useResponsive';
 import { playlistsDb } from '../../database/playlists';
 
 export default function ArtistDetailScreen() {
   const { artistId } = useLocalSearchParams<{ artistId: string }>();
   const router = useRouter();
+  const { isMobile } = useResponsive();
   const [artist, setArtist] = useState<Artist | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'top20' | 'all'>('top20');
@@ -129,7 +131,10 @@ export default function ArtistDetailScreen() {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, isMobile && { paddingBottom: 170 }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Back navigation */}
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color="#ffffff" />
@@ -140,26 +145,32 @@ export default function ArtistDetailScreen() {
           colors={['#27272a', '#18181b', '#121212']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={styles.heroBox}
+          style={[
+            styles.heroBox,
+            isMobile && { flexDirection: 'column', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20, gap: 16 }
+          ]}
         >
-          <Image source={{ uri: getArtistImage(artist.name, artist.imageUrl) }} style={styles.heroImage} />
+          <Image
+            source={{ uri: getArtistImage(artist.name, artist.imageUrl) }}
+            style={[styles.heroImage, isMobile && { width: 140, height: 140, borderRadius: 70 }]}
+          />
 
-          <View style={styles.heroMeta}>
+          <View style={[styles.heroMeta, isMobile && { alignItems: 'center' }]}>
             <View style={styles.verifiedRow}>
               <Ionicons name="checkmark-circle" size={18} color="#38bdf8" />
               <Text style={styles.verifiedText}>Verified Artist</Text>
             </View>
 
-            <Text style={styles.heroName}>{artist.name}</Text>
+            <Text style={[styles.heroName, isMobile && { fontSize: 28, textAlign: 'center' }]}>{artist.name}</Text>
 
             {artist.monthlyListeners ? (
-              <Text style={styles.listenersText}>
+              <Text style={[styles.listenersText, isMobile && { textAlign: 'center' }]}>
                 {artist.monthlyListeners.toLocaleString()} monthly listeners
               </Text>
             ) : null}
 
             {artist.genres && (
-              <View style={styles.genrePills}>
+              <View style={[styles.genrePills, isMobile && { justifyContent: 'center' }]}>
                 {artist.genres.map((g, i) => (
                   <View key={i} style={styles.genrePill}>
                     <Text style={styles.genrePillText}>{g}</Text>
@@ -172,7 +183,7 @@ export default function ArtistDetailScreen() {
 
         {/* Actions Bar */}
         {allTracks.length > 0 && (
-          <View style={styles.actionsBar}>
+          <View style={[styles.actionsBar, isMobile && { paddingHorizontal: 16, flexWrap: 'wrap', gap: 12 }]}>
             <TouchableOpacity
               style={styles.bigGreenPlayBtn}
               onPress={() => handlePlaySelection(displayedTracks)}
@@ -192,7 +203,7 @@ export default function ArtistDetailScreen() {
                 color={savedTop20 ? '#1ed760' : '#ffffff'}
               />
               <Text style={[styles.savePlaylistActionText, savedTop20 && { color: '#1ed760' }]}>
-                {savedTop20 ? 'Best 20 Saved' : 'Save Best 20 Playlist'}
+                {savedTop20 ? 'Best 20 Saved' : 'Save Best 20'}
               </Text>
             </TouchableOpacity>
 
@@ -221,7 +232,7 @@ export default function ArtistDetailScreen() {
 
         {/* Artist Playlist Showcase Card */}
         {allTracks.length > 0 && (
-          <View style={styles.showcaseSection}>
+          <View style={[styles.showcaseSection, isMobile && { paddingHorizontal: 16 }]}>
             <LinearGradient
               colors={['#1e3a5f', '#152538', '#141416']}
               start={{ x: 0, y: 0 }}

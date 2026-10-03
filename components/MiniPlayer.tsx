@@ -3,12 +3,15 @@ import { View, Text, Image, TouchableOpacity, StyleSheet, Platform } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { usePlayer } from '../hooks/usePlayer';
+import { useResponsive } from '../hooks/useResponsive';
 import { APP_CONFIG } from '../constants/config';
 import { FavoriteButton } from './FavoriteButton';
 
 export const MiniPlayer: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const { width } = useResponsive();
+  const showSkip10 = width >= 440;
   const {
     currentTrack,
     isPlaying,
@@ -71,15 +74,17 @@ export const MiniPlayer: React.FC = () => {
         <View style={styles.actions}>
           <FavoriteButton song={currentTrack} size={20} />
 
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={(e) => {
-              e.stopPropagation?.();
-              backward(10);
-            }}
-          >
-            <Ionicons name="play-back" size={17} color={APP_CONFIG.THEME.textSecondary} />
-          </TouchableOpacity>
+          {showSkip10 && (
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                backward(10);
+              }}
+            >
+              <Ionicons name="play-back" size={17} color={APP_CONFIG.THEME.textSecondary} />
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.playButton}
@@ -95,15 +100,17 @@ export const MiniPlayer: React.FC = () => {
             />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={(e) => {
-              e.stopPropagation?.();
-              forward(10);
-            }}
-          >
-            <Ionicons name="play-forward" size={17} color={APP_CONFIG.THEME.textSecondary} />
-          </TouchableOpacity>
+          {showSkip10 && (
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                forward(10);
+              }}
+            >
+              <Ionicons name="play-forward" size={17} color={APP_CONFIG.THEME.textSecondary} />
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.nextButton}

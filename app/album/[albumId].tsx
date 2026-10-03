@@ -9,10 +9,12 @@ import { Album } from '../../types/album';
 import { SongCard } from '../../components/SongCard';
 import { Loading } from '../../components/Loading';
 import { usePlayer } from '../../hooks/usePlayer';
+import { useResponsive } from '../../hooks/useResponsive';
 
 export default function AlbumDetailScreen() {
   const { albumId } = useLocalSearchParams<{ albumId: string }>();
   const router = useRouter();
+  const { isMobile } = useResponsive();
   const [album, setAlbum] = useState<Album | null>(null);
   const [loading, setLoading] = useState(true);
   const { playTrack } = usePlayer();
@@ -58,7 +60,10 @@ export default function AlbumDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, isMobile && { paddingBottom: 170 }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Back navigation */}
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color="#ffffff" />
@@ -69,13 +74,16 @@ export default function AlbumDetailScreen() {
           colors={['#1e3a5f', '#142033', '#121212']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={styles.heroHeader}
+          style={[
+            styles.heroHeader,
+            isMobile && { flexDirection: 'column', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20, gap: 16 }
+          ]}
         >
-          <Image source={{ uri: album.coverUrl }} style={styles.cover} />
+          <Image source={{ uri: album.coverUrl }} style={[styles.cover, isMobile && { width: 150, height: 150 }]} />
 
-          <View style={styles.metaCol}>
+          <View style={[styles.metaCol, isMobile && { alignItems: 'center' }]}>
             <Text style={styles.typeLabel}>ALBUM</Text>
-            <Text style={styles.title}>{album.title}</Text>
+            <Text style={[styles.title, isMobile && { fontSize: 24, textAlign: 'center' }]}>{album.title}</Text>
             <View style={styles.artistMetaRow}>
               <Text style={styles.artist}>{album.artistName}</Text>
               <Text style={styles.dot}>•</Text>
@@ -88,7 +96,7 @@ export default function AlbumDetailScreen() {
 
         {/* Action Controls */}
         {album.tracks && album.tracks.length > 0 && (
-          <View style={styles.actionsBar}>
+          <View style={[styles.actionsBar, isMobile && { paddingHorizontal: 16 }]}>
             <TouchableOpacity
               style={styles.bigGreenPlayBtn}
               onPress={() => playTrack(album.tracks![0], album.tracks)}
@@ -100,7 +108,7 @@ export default function AlbumDetailScreen() {
         )}
 
         {/* Tracklist */}
-        <View style={styles.tracklistSection}>
+        <View style={[styles.tracklistSection, isMobile && { paddingHorizontal: 16 }]}>
           {album.tracks && album.tracks.length > 0 ? (
             album.tracks.map((s, idx) => (
               <SongCard
