@@ -579,7 +579,8 @@ const styles = StyleSheet.create({
     elevation: 4
   },
   sectionsContainer: {
-    paddingTop: 12
+    paddingTop: 12,
+    paddingBottom: 150
   },
   tamilHubBanner: {
     marginHorizontal: 24,

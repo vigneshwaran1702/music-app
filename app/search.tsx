@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
-  ActivityIndicator
+  ActivityIndicator,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -131,7 +132,18 @@ export default function SearchScreen() {
         <View style={styles.searchBarWrapper}>
           <Ionicons name="search" size={20} color="#a7a7a7" style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[
+              styles.searchInput,
+              Platform.OS === 'web' && ({
+                outline: 'none',
+                border: 'none',
+                borderWidth: 0,
+                outlineWidth: 0,
+                boxShadow: 'none',
+                backgroundColor: 'transparent'
+              } as any)
+            ]}
+            underlineColorAndroid="transparent"
             value={query}
             onChangeText={handleQueryChange}
             onSubmitEditing={() => performSearch(query)}
@@ -440,7 +452,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     outlineStyle: 'none',
     outlineWidth: 0,
-    borderWidth: 0
+    borderWidth: 0,
+    borderStyle: 'none',
+    borderColor: 'transparent',
+    backgroundColor: 'transparent'
   } as any,
   clearInputBtn: {
     padding: 4
@@ -470,7 +485,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingBottom: 120
+    paddingBottom: 150
   },
   skeletonContainer: {
     marginTop: 20
