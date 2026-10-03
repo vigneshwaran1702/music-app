@@ -41,6 +41,20 @@ function AppLayout() {
         style.innerHTML = `
           * {
             box-sizing: border-box;
+            outline: none !important;
+            -webkit-tap-highlight-color: transparent;
+          }
+          *:focus, *:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
+          }
+          input, textarea, button, select, [role="button"], [tabindex] {
+            outline: none !important;
+            box-shadow: none !important;
+          }
+          input:focus, textarea:focus, button:focus, [role="button"]:focus {
+            outline: none !important;
+            box-shadow: none !important;
           }
           body {
             background-color: #000000;

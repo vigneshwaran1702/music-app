@@ -56,9 +56,7 @@ const styles = StyleSheet.create({
     backgroundColor: APP_CONFIG.THEME.cardBackground,
     borderRadius: 14,
     paddingHorizontal: 14,
-    height: 48,
-    borderWidth: 1,
-    borderColor: APP_CONFIG.THEME.border
+    height: 48
   },
   searchIcon: {
     marginRight: 10
@@ -67,8 +65,11 @@ const styles = StyleSheet.create({
     flex: 1,
     color: APP_CONFIG.THEME.textPrimary,
     fontSize: 15,
-    height: '100%'
-  },
+    height: '100%',
+    outlineStyle: 'none',
+    outlineWidth: 0,
+    borderWidth: 0
+  } as any,
   clearButton: {
     padding: 4
   }

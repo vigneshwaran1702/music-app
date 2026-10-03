@@ -90,7 +90,7 @@ export const MiniPlayer: React.FC = () => {
           >
             <Ionicons
               name={isPlaying ? 'pause' : 'play'}
-              size={20}
+              size={22}
               color="#ffffff"
             />
           </TouchableOpacity>
@@ -179,10 +179,7 @@ const styles = StyleSheet.create({
     gap: 4
   },
   playButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: APP_CONFIG.THEME.accentPrimary,
+    padding: 6,
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 4
