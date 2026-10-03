@@ -437,8 +437,11 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '500'
-  },
+    fontWeight: '500',
+    outlineStyle: 'none',
+    outlineWidth: 0,
+    borderWidth: 0
+  } as any,
   clearInputBtn: {
     padding: 4
   },

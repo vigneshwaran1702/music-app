@@ -125,16 +125,16 @@ export const BottomBarPlayer: React.FC = () => {
             <Ionicons name="play-back" size={18} color="#e0e0e0" />
           </TouchableOpacity>
 
-          {/* Play/Pause Button (Spotify White Circle) */}
+          {/* Play/Pause Button */}
           <TouchableOpacity
             style={styles.playPauseBtn}
             onPress={togglePlayPause}
-            activeOpacity={0.85}
+            activeOpacity={0.7}
           >
             <Ionicons
               name={isPlaying ? 'pause' : 'play'}
-              size={20}
-              color="#000000"
+              size={24}
+              color="#ffffff"
             />
           </TouchableOpacity>
 
@@ -331,10 +331,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1ed760'
   },
   playPauseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#ffffff',
+    padding: 6,
     justifyContent: 'center',
     alignItems: 'center'
   },
