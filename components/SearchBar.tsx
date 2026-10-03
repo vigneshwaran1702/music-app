@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { APP_CONFIG } from '../constants/config';
 
@@ -24,7 +24,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     <View style={styles.container}>
       <Ionicons name="search" size={20} color={APP_CONFIG.THEME.textSecondary} style={styles.searchIcon} />
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          Platform.OS === 'web' && ({
+            outline: 'none',
+            border: 'none',
+            borderWidth: 0,
+            outlineWidth: 0,
+            boxShadow: 'none',
+            backgroundColor: 'transparent'
+          } as any)
+        ]}
+        underlineColorAndroid="transparent"
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -68,7 +79,10 @@ const styles = StyleSheet.create({
     height: '100%',
     outlineStyle: 'none',
     outlineWidth: 0,
-    borderWidth: 0
+    borderWidth: 0,
+    borderStyle: 'none',
+    borderColor: 'transparent',
+    backgroundColor: 'transparent'
   } as any,
   clearButton: {
     padding: 4

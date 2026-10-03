@@ -42,10 +42,20 @@ export default function Root({ children }: { children: React.ReactNode }) {
             input, textarea, button, select, [role="button"], [tabindex] {
               outline: none !important;
               box-shadow: none !important;
+              border: none !important;
+              border-width: 0 !important;
             }
             input:focus, textarea:focus, button:focus, [role="button"]:focus {
               outline: none !important;
               box-shadow: none !important;
+              border: none !important;
+              border-width: 0 !important;
+            }
+            input[type="text"], input[type="search"], input {
+              border: none !important;
+              outline: none !important;
+              box-shadow: none !important;
+              background-color: transparent !important;
             }
             body {
               background-color: #000000;
