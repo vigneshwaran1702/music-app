@@ -96,8 +96,8 @@ export default function LibraryScreen() {
               onPress={() => setShowSpotifyModal(true)}
               activeOpacity={0.8}
             >
-              <Ionicons name="musical-notes" size={18} color="#000000" />
-              <Text style={styles.createBtnText}>Spotify Connect</Text>
+              <Ionicons name="cloud-download-outline" size={18} color="#000000" />
+              <Text style={styles.createBtnText}>Import Playlist</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

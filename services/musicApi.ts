@@ -258,9 +258,9 @@ export const musicApi = {
       // ignore
     }
 
-    // 3. Check JioSaavn by direct song ID
-    if (songId.startsWith('saavn_')) {
-      const cleanId = songId.replace('saavn_', '');
+    // 3. Check Aura Music catalog by direct song ID
+    if (songId.startsWith('aura_song_') || songId.startsWith('saavn_')) {
+      const cleanId = songId.replace(/^(aura_song_|saavn_)/, '');
       try {
         const details = await jioSaavnApi.getSongDetails(cleanId);
         if (details) return details;
@@ -269,13 +269,11 @@ export const musicApi = {
       }
     }
 
-    // 4. Fallback search by cleaned song query on JioSaavn
+    // 4. Fallback search by cleaned song query on Aura catalog
     try {
       const cleanName = decodeURIComponent(
         songId
-          .replace('saavn_', '')
-          .replace('itunes_', '')
-          .replace('yt_', '')
+          .replace(/^(aura_song_|song_|saavn_|itunes_|yt_)/, '')
           .replace(/_/g, ' ')
       ).trim();
       if (cleanName) {

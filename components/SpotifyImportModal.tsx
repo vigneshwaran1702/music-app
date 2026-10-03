@@ -147,15 +147,15 @@ export const SpotifyImportModal: React.FC<SpotifyImportModalProps> = ({
           <LinearGradient colors={['#1db954', '#121212']} style={styles.header}>
             <View style={styles.headerRow}>
               <View style={styles.titleWithIcon}>
-                <Ionicons name="musical-notes" size={24} color="#ffffff" />
-                <Text style={styles.headerTitle}>Spotify Connect</Text>
+                <Ionicons name="cloud-download-outline" size={24} color="#ffffff" />
+                <Text style={styles.headerTitle}>Import Playlists</Text>
               </View>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
                 <Ionicons name="close" size={24} color="#ffffff" />
               </TouchableOpacity>
             </View>
             <Text style={styles.headerSubtitle}>
-              Connect your Spotify account or import playlists with full 320kbps playback.
+              Import your favorite playlists into Aura Music with full-length 320kbps playback.
             </Text>
           </LinearGradient>
 

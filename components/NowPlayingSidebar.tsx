@@ -97,7 +97,7 @@ export const NowPlayingSidebar: React.FC = () => {
             <Text style={styles.lyricsHeader}>LYRICS</Text>
             <Text style={styles.lyricsBody}>
               {currentTrack.lyrics ||
-                'Lyrics for this track are currently being synced with JioSaavn & MusicBrainz.'}
+                'Lyrics for this track are currently being synchronized with Aura Music.'}
             </Text>
           </View>
         )}

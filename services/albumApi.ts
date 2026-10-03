@@ -68,8 +68,8 @@ export const albumApi = {
       };
     }
 
-    // 3. JioSaavn Album API if saavn_album_
-    if (albumId.startsWith('saavn_album_')) {
+    // 3. Album API if aura_album_ or saavn_album_
+    if (albumId.startsWith('aura_album_') || albumId.startsWith('saavn_album_')) {
       const details = await jioSaavnApi.getAlbumDetails(albumId);
       if (details) {
         return details.album;

@@ -127,7 +127,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ onClose }) => {
             <Text style={styles.lyricsHeader}>Lyrics</Text>
             <Text style={styles.lyricsBody}>
               {currentTrack.lyrics ||
-                "♪ [Instrumental / Royalty-Free Stream]\n\nFeel the melody pulse through the night.\nNo official lyrics registered for this track."}
+                "Lyrics for this track are currently being synchronized with Aura Music."}
             </Text>
           </View>
         ) : showQueue ? (
