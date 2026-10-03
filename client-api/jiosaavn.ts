@@ -96,7 +96,7 @@ async function fetchDirectSaavn(endpointUrl: string): Promise<any> {
   // Strategy 1: Local Metro server proxy for Web (bypasses CORS in development)
   if (isWeb && typeof window !== 'undefined' && window.location?.origin) {
     try {
-      const proxyUrl = `${window.location.origin}/api/saavn-proxy?url=${encodeURIComponent(endpointUrl)}`;
+      const proxyUrl = `${window.location.origin}/api/songs?url=${encodeURIComponent(endpointUrl)}`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
       const res = await fetch(proxyUrl, { signal: controller.signal });
@@ -275,25 +275,25 @@ export const jioSaavnApi = {
       const data = await fetchDirectSaavn(url);
       if (data && data.results && Array.isArray(data.results)) {
         return data.results.map((item: any) => ({
-          id: `saavn_artist_${item.id || item.artistid || encodeURIComponent(item.name || item.title)}`,
+          id: `aura_artist_${item.id || item.artistid || encodeURIComponent(item.name || item.title)}`,
           name: decodeHtmlEntities(item.name || item.title || 'Artist'),
           imageUrl: getArtistImage(
             item.name || item.title || 'Artist',
             enhanceArtworkUrl(item.image)
           ),
           genres: [item.extra || item.role || 'Artist', item.language || 'Music'].filter(Boolean),
-          bio: `${decodeHtmlEntities(item.name || item.title)} - Top recording artist on JioSaavn.`
+          bio: `${decodeHtmlEntities(item.name || item.title)} - Popular recording artist on Aura Music.`
         }));
       }
     } catch (err) {
-      console.warn('[JioSaavn API] searchArtists error:', err);
+      console.warn('[Aura API] searchArtists error:', err);
     }
 
     return [];
   },
 
   async getAlbumDetails(albumId: string): Promise<{ album: Album; songs: Song[] } | null> {
-    const cleanId = albumId.replace('saavn_album_', '');
+    const cleanId = albumId.replace(/^(aura_album_|saavn_album_)/, '');
     try {
       const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=content.getAlbumDetails&_format=json&_marker=0&api_version=4&ctx=android&albumid=${cleanId}`;
       const data = await fetchDirectSaavn(url);
@@ -310,9 +310,9 @@ export const jioSaavnApi = {
           'Various Artists';
 
         const album: Album = {
-          id: `saavn_album_${data.id || cleanId}`,
+          id: `aura_album_${data.id || cleanId}`,
           title: decodeHtmlEntities(data.title || data.name),
-          artistId: `saavn_artist_${data.primary_artists_id || 'artist'}`,
+          artistId: `aura_artist_${data.primary_artists_id || 'artist'}`,
           artistName: decodeHtmlEntities(primaryArtist),
           coverUrl: enhanceArtworkUrl(data.image),
           genre: data.language ? data.language.toUpperCase() : 'Pop',
@@ -332,8 +332,23 @@ export const jioSaavnApi = {
 
   async getLyrics(songId: string): Promise<string> {
     if (!songId) return '';
-    const cleanId = songId.replace('saavn_', '');
+    const cleanId = songId.replace(/^(aura_song_|song_|saavn_)/, '');
     try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.origin) {
+        try {
+          const lUrl = `${window.location.origin}/api/lyrics?songId=${cleanId}`;
+          const res = await fetch(lUrl);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.lyrics) {
+              return decodeHtmlEntities(data.lyrics).replace(/<br\s*[\/]?>/gi, '\n');
+            }
+          }
+        } catch {
+          // continue to direct fetch
+        }
+      }
+
       const url = `${APP_CONFIG.JIOSAAVN_API_BASE}?__call=lyrics.getLyrics&_format=json&_marker=0&api_version=4&ctx=android&lyrics_id=${cleanId}`;
       const data = await fetchDirectSaavn(url);
       if (data && data.lyrics) {
@@ -367,16 +382,16 @@ export const jioSaavnApi = {
     const lang = (item.more_info?.language || item.language || 'tamil').toLowerCase();
 
     return {
-      id: `saavn_${item.id}`,
+      id: `aura_song_${item.id}`,
       title,
       artistId: item.more_info?.artistMap?.primary_artists?.[0]?.id
-        ? `saavn_artist_${item.more_info.artistMap.primary_artists[0].id}`
-        : 'artist_saavn',
+        ? `aura_artist_${item.more_info.artistMap.primary_artists[0].id}`
+        : 'artist_aura',
       artistName: decodeHtmlEntities(primaryArtists),
       albumId: item.more_info?.album_id
-        ? `saavn_album_${item.more_info.album_id}`
+        ? `aura_album_${item.more_info.album_id}`
         : item.albumid
-        ? `saavn_album_${item.albumid}`
+        ? `aura_album_${item.albumid}`
         : undefined,
       albumTitle,
       duration: isNaN(duration) ? 210 : duration,
@@ -393,3 +408,5 @@ export const jioSaavnApi = {
     };
   }
 };
+
+export const auraMusicApi = jioSaavnApi;

@@ -98,9 +98,7 @@ export const artistApi = {
     try {
       const cleanName = decodeURIComponent(
         artistId
-          .replace('saavn_artist_', '')
-          .replace('itunes_artist_', '')
-          .replace('yt_channel_', '')
+          .replace(/^(aura_artist_|saavn_artist_|itunes_artist_|yt_channel_)/, '')
           .replace(/_/g, ' ')
       );
 

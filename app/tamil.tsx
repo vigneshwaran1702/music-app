@@ -186,7 +186,7 @@ export default function TamilMusicHubScreen() {
         </ScrollView>
 
         {loading && !data.trending.length ? (
-          <Loading message="Streaming Tamil tracks from JioSaavn catalog..." />
+          <Loading message="Streaming Tamil chartbusters..." />
         ) : (
           <>
             {/* Category Filter View */}

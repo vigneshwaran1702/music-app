@@ -177,7 +177,7 @@ export default function SearchScreen() {
           <View style={styles.skeletonContainer}>
             <View style={styles.loadingBox}>
               <ActivityIndicator size="large" color="#1ed760" />
-              <Text style={styles.loadingText}>Searching streaming catalogs...</Text>
+              <Text style={styles.loadingText}>Searching Aura music library...</Text>
             </View>
             {[1, 2, 3, 4, 5].map((idx) => (
               <View key={idx} style={styles.skeletonRow}>

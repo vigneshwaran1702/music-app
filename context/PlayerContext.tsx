@@ -203,6 +203,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
    * has a preview clip, broken URL, or missing stream.
    */
   const resolveFullSong = async (track: Song, force = false): Promise<Song> => {
+    // A song is only preview if it has no audioUrl or has an explicit preview domain
     const isPreview =
       force ||
       !track.audioUrl ||
@@ -210,8 +211,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       track.audioUrl.includes('AudioPreview') ||
       track.audioUrl.includes('mzstatic') ||
       track.audioUrl.includes('youtube.com/watch') ||
-      track.id.startsWith('itunes_') ||
-      (track.duration !== undefined && track.duration <= 35);
+      (track.duration !== undefined && track.duration > 0 && track.duration <= 35);
 
     if (!isPreview) {
       return track;
@@ -226,11 +226,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const normTrackTitle = cleanTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-    // Step 1: Check curated full-length library (instant match)
+    // Step 1: Check curated full-length library (instant match by normalized title)
     if (normTrackTitle) {
       const foundCurated = CURATED_FEATURED_SONGS.find((s) => {
         const sNorm = s.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-        return sNorm.includes(normTrackTitle) || normTrackTitle.includes(sNorm);
+        return sNorm === normTrackTitle || sNorm.includes(normTrackTitle) || normTrackTitle.includes(sNorm);
       });
       if (foundCurated && foundCurated.audioUrl) {
         return {
@@ -238,12 +238,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           audioUrl: foundCurated.audioUrl,
           duration: foundCurated.duration || track.duration,
           coverUrl: track.coverUrl || foundCurated.coverUrl,
+          lyrics: track.lyrics || foundCurated.lyrics,
           bitrate: 320
         };
       }
     }
 
-    // Step 2: Search JioSaavn for full 320kbps track
+    // Step 2: Search API for full 320kbps track
     try {
       const cleanArtist = (track.artistName || '')
         .split(/[,&]/)[0]
@@ -252,11 +253,11 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       const searchQuery = `${cleanTitle} ${cleanArtist}`.trim();
       const timeoutPromise = new Promise<Song[]>((res) => setTimeout(() => res([]), 5000));
-      const saavnPromise = jioSaavnApi.searchSongs(searchQuery, 3);
+      const saavnPromise = jioSaavnApi.searchSongs(searchQuery, 5);
       let matches = await Promise.race([saavnPromise, timeoutPromise]);
 
       if (!matches || matches.length === 0) {
-        matches = await Promise.race([jioSaavnApi.searchSongs(cleanTitle, 3), timeoutPromise]);
+        matches = await Promise.race([jioSaavnApi.searchSongs(cleanTitle, 5), timeoutPromise]);
       }
 
       if (matches && matches.length > 0 && matches[0].audioUrl) {
@@ -265,6 +266,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           audioUrl: matches[0].audioUrl,
           duration: matches[0].duration || track.duration,
           coverUrl: track.coverUrl || matches[0].coverUrl,
+          lyrics: track.lyrics || matches[0].lyrics,
           bitrate: 320
         };
       }
@@ -272,16 +274,26 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       console.warn('[Player] Full song resolution error:', e);
     }
 
-    // Step 3: Reliable fallback: find matching curated song by language or genre
-    const langFallback =
-      CURATED_FEATURED_SONGS.find((s) => s.language === track.language && s.audioUrl) ||
-      CURATED_FEATURED_SONGS[0];
+    // If original track already had an audioUrl (even non-preview), preserve it
+    if (track.audioUrl && !track.audioUrl.includes('apple.com') && !track.audioUrl.includes('AudioPreview')) {
+      return track;
+    }
+
+    // Step 3: Reliable fallback: pick unique curated song by deterministic seed so each track gets a UNIQUE link
+    const candidateSongs = CURATED_FEATURED_SONGS.filter((s) => Boolean(s.audioUrl));
+    const langMatches = candidateSongs.filter((s) => s.language === track.language);
+    const pool = langMatches.length > 0 ? langMatches : candidateSongs;
+    const seed = (track.id + (track.title || ''))
+      .split('')
+      .reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    const uniqueFallback = pool[seed % pool.length];
 
     return {
       ...track,
-      audioUrl: langFallback.audioUrl,
-      duration: langFallback.duration || 210,
-      coverUrl: track.coverUrl || langFallback.coverUrl,
+      audioUrl: uniqueFallback.audioUrl,
+      duration: uniqueFallback.duration || track.duration || 210,
+      coverUrl: track.coverUrl || uniqueFallback.coverUrl,
+      lyrics: track.lyrics || uniqueFallback.lyrics,
       bitrate: 320
     };
   };
@@ -357,22 +369,34 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setCurrentTrack(resolvedTrack);
       setDuration(resolvedTrack.duration || 210);
 
+      // Automatically fetch full lyrics in background if not present
+      if (!resolvedTrack.lyrics) {
+        jioSaavnApi.getLyrics(resolvedTrack.id).then((fetchedLyrics) => {
+          if (fetchedLyrics) {
+            setCurrentTrack((curr) =>
+              curr && curr.id === resolvedTrack.id ? { ...curr, lyrics: fetchedLyrics } : curr
+            );
+          }
+        }).catch(() => {});
+      }
+
       let audioUri = resolvedTrack.localPath || resolvedTrack.audioUrl;
 
-      // Fallback to verified curated track if still empty
+      // Unique fallback to curated pool if still empty
       if (!audioUri) {
-        const fallback = CURATED_FEATURED_SONGS[0];
-        audioUri = fallback.audioUrl;
+        const pool = CURATED_FEATURED_SONGS.filter((s) => Boolean(s.audioUrl));
+        const seed = (resolvedTrack.id + (resolvedTrack.title || '')).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+        audioUri = pool[seed % pool.length].audioUrl;
       }
 
       const sound = await loadAndPlaySound(audioUri);
 
       if (!sound) {
-        // Last resort fallback: try matching curated song so user never experiences silence
-        console.warn('[Player] All stream variants failed, falling back to curated backup track...');
-        const backupTrack =
-          CURATED_FEATURED_SONGS.find((s) => s.language === resolvedTrack.language && s.audioUrl) ||
-          CURATED_FEATURED_SONGS[0];
+        // Last resort fallback: unique fallback track
+        console.warn('[Player] All stream variants failed, falling back to unique backup track...');
+        const pool = CURATED_FEATURED_SONGS.filter((s) => Boolean(s.audioUrl));
+        const seed = (resolvedTrack.id + (resolvedTrack.title || '')).split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+        const backupTrack = pool[seed % pool.length];
         const backupSound = await loadAndPlaySound(backupTrack.audioUrl);
         if (backupSound) {
           soundRef.current = backupSound;

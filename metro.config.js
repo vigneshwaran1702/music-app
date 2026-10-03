@@ -13,8 +13,14 @@ config.server = {
       : metroMiddleware;
 
     return async (req, res, next) => {
-      // CORS proxy for JioSaavn or external music APIs that lack browser CORS headers
-      if (req.url && (req.url.startsWith('/api/saavn-proxy') || req.url.includes('/api/saavn-proxy'))) {
+      // Native internal API endpoints for Aura Music (/api/songs, /api/lyrics, /api/music-stream)
+      if (
+        req.url &&
+        (req.url.startsWith('/api/songs') ||
+          req.url.startsWith('/api/lyrics') ||
+          req.url.startsWith('/api/music-stream') ||
+          req.url.startsWith('/api/saavn-proxy'))
+      ) {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', '*');
@@ -27,12 +33,30 @@ config.server = {
 
         try {
           const parsed = new URL(req.url, 'http://localhost:8081');
-          const targetUrl = parsed.searchParams.get('url');
+          let targetUrl = parsed.searchParams.get('url');
+
+          // If called as /api/lyrics?songId=...
+          if (!targetUrl && req.url.startsWith('/api/lyrics')) {
+            const lyricsId = parsed.searchParams.get('songId') || parsed.searchParams.get('id');
+            if (lyricsId) {
+              const cleanId = lyricsId.replace(/^(aura_song_|song_|saavn_)/, '');
+              targetUrl = `https://www.jiosaavn.com/api.php?__call=lyrics.getLyrics&_format=json&_marker=0&api_version=4&ctx=android&lyrics_id=${cleanId}`;
+            }
+          }
+
+          // If called as /api/songs?q=...
+          if (!targetUrl && req.url.startsWith('/api/songs')) {
+            const query = parsed.searchParams.get('q');
+            const limit = parsed.searchParams.get('limit') || '30';
+            if (query) {
+              targetUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&api_version=4&ctx=android&q=${encodeURIComponent(query)}&n=${limit}&p=1`;
+            }
+          }
 
           if (!targetUrl) {
             res.statusCode = 400;
             res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ error: 'Missing target url parameter' }));
+            res.end(JSON.stringify({ error: 'Missing target url or query parameter' }));
             return;
           }
 

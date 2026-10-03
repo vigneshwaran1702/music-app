@@ -161,8 +161,8 @@ export default function PlaylistsScreen() {
               onPress={() => setShowSpotifyModal(true)}
               activeOpacity={0.85}
             >
-              <Ionicons name="musical-notes" size={18} color="#000000" />
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#000000' }}>Spotify Import</Text>
+              <Ionicons name="cloud-download-outline" size={18} color="#000000" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#000000' }}>Import Playlist</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

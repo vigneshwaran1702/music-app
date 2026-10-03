@@ -40,7 +40,7 @@ export default function SongDetailScreen() {
       // If still not found, search with cleanId
       if (!data) {
         const query = cleanId
-          .replace(/saavn_|itunes_|yt_|mb_/g, '')
+          .replace(/aura_song_|song_|saavn_|itunes_|yt_|mb_/g, '')
           .replace(/_/g, ' ')
           .trim();
         if (query) {
@@ -143,8 +143,8 @@ export default function SongDetailScreen() {
               <Text style={styles.metaValue}>{song.language?.toUpperCase() || 'EN'}</Text>
             </View>
             <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>License</Text>
-              <Text style={styles.metaValue}>{song.license || 'Creative Commons'}</Text>
+              <Text style={styles.metaLabel}>Audio</Text>
+              <Text style={styles.metaValue}>{song.license || 'Aura High-Fidelity'}</Text>
             </View>
           </View>
         </View>
