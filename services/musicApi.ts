@@ -358,12 +358,82 @@ export const musicApi = {
       .replace(/playlist/gi, '')
       .trim();
 
-    const searchQueries = [
-      playlistName,
-      clean,
-      `${clean} hits`,
-      `${clean} songs`
-    ].filter((q) => q.length > 1);
+    const lowerName = playlistName.toLowerCase();
+    let searchQueries: string[] = [];
+
+    if (lowerName.includes('party') || (lowerName.includes('vibe') && !lowerName.includes('drive'))) {
+      searchQueries = [
+        'Top Tamil Party Kuthu Hits Anirudh',
+        'Tamil Dance Party Songs 2024',
+        'Tamil Mass Vibe Songs',
+        'Tamil Kuthu Hits'
+      ];
+    } else if (lowerName.includes('melody') || lowerName.includes('romantic') || lowerName.includes('love')) {
+      searchQueries = [
+        'Tamil Romantic Melodies Love Songs',
+        'Top Tamil Melody Hits AR Rahman Harris',
+        'Soulful Tamil Melodies Sid Sriram',
+        'Tamil Melody Classics'
+      ];
+    } else if (lowerName.includes('breakup') || lowerName.includes('failure')) {
+      searchQueries = [
+        'Tamil Breakup Songs Love Failure',
+        'Tamil Heartbreak Songs Dhanush Yuvan',
+        'Tamil Sad Breakup Songs Anirudh',
+        'Tamil 3AM Breakup Hits'
+      ];
+    } else if (lowerName.includes('sad') || lowerName.includes('drugs') || lowerName.includes('melancholy')) {
+      searchQueries = [
+        'Tamil Sad Songs Yuvan Drugs Melancholy',
+        'Tamil Emotional Melancholy Songs',
+        'Tamil Pain Hits Yuvan Shankar Raja',
+        'Tamil Tearjerker Songs'
+      ];
+    } else if (lowerName.includes('motivation') || lowerName.includes('workout') || lowerName.includes('gym') || lowerName.includes('beast')) {
+      searchQueries = [
+        'Tamil Motivational Songs Workout Beast Mode',
+        'Tamil Gym Workout Energetic Hits Anirudh',
+        'Tamil Mass Motivational Songs',
+        'Tamil Workout BGM'
+      ];
+    } else if (lowerName.includes('chill') || lowerName.includes('lo-fi') || lowerName.includes('latenight') || lowerName.includes('late night')) {
+      searchQueries = [
+        'Tamil Lo-Fi Chill Songs Acoustic',
+        'Tamil Late Night Relaxing Melodies',
+        'Tamil Indie Chill Vibes',
+        'Tamil Acoustic Relax'
+      ];
+    } else if (lowerName.includes('drive') || lowerName.includes('road trip') || lowerName.includes('travel')) {
+      searchQueries = [
+        'Tamil Long Drive Road Trip Songs',
+        'Tamil Highway Breezy Car Songs',
+        'Tamil Travel Hits Melodies',
+        'Tamil Road Trip Beats'
+      ];
+    } else if (lowerName.includes('nostalgia') || lowerName.includes('90s') || lowerName.includes('2000s') || lowerName.includes('classics')) {
+      searchQueries = [
+        'Tamil 90s Evergreen Hits SPB Ilayaraja',
+        'Tamil 2000s Classic Melodies Vidyasagar',
+        'Tamil Golden Classics AR Rahman 90s',
+        'Tamil Retro Hits'
+      ];
+    } else {
+      const clean = playlistName
+        .replace(/best of/gi, '')
+        .replace(/pl_/gi, '')
+        .replace(/hits/gi, '')
+        .replace(/essentials/gi, '')
+        .replace(/anthems/gi, '')
+        .replace(/masterpieces/gi, '')
+        .trim();
+
+      searchQueries = [
+        playlistName,
+        clean,
+        `${clean} hits`,
+        `${clean} songs`
+      ].filter((q) => q.length > 1);
+    }
 
     const isFullSong = (s: Song) =>
       Boolean(s.audioUrl) &&
@@ -375,18 +445,48 @@ export const musicApi = {
     const songs: Song[] = [];
 
     // 1. Check curated matching tracks first
-    const lowerClean = clean.toLowerCase();
-    const curatedMatches = CURATED_FEATURED_SONGS.filter(
-      (s) =>
-        s.title.toLowerCase().includes(lowerClean) ||
-        s.artistName.toLowerCase().includes(lowerClean) ||
-        (s.albumTitle && s.albumTitle.toLowerCase().includes(lowerClean)) ||
-        (s.genre && s.genre.toLowerCase().includes(lowerClean)) ||
-        (lowerClean.includes('tamil') && s.language === 'ta') ||
-        (lowerClean.includes('hindi') && s.language === 'hi') ||
-        (lowerClean.includes('english') && s.language === 'en') ||
-        (lowerClean.includes('romantic') && (s.genre || '').includes('Melody'))
-    );
+    const curatedMatches = CURATED_FEATURED_SONGS.filter((s) => {
+      if (lowerName.includes('party') || (lowerName.includes('vibe') && !lowerName.includes('drive'))) {
+        return (
+          ['tamil_1', 'tamil_2', 'tamil_3', 'tamil_4', 'saavn_nHs_0eEA', 'saavn__GIuQbB_', 'aura_song_chellamma', 'saavn_PaDPLtYH'].includes(s.id) ||
+          ((s.genre || '').includes('Kuthu') && s.language === 'ta')
+        );
+      }
+      if (lowerName.includes('melody') || lowerName.includes('romantic') || lowerName.includes('love')) {
+        return (
+          ['tamil_5', 'tamil_7', 'saavn_asyeukc4', 'saavn_-TFpspH-', 'saavn_fqKx7XVg', 'saavn_HifBw1Ku'].includes(s.id) ||
+          ((s.genre || '').includes('Melody') && s.language === 'ta')
+        );
+      }
+      if (lowerName.includes('breakup') || lowerName.includes('failure')) {
+        return ['saavn_itXw9yrX', 'saavn_o-IsoK2n', 'saavn_fqKx7XVg', 'saavn_EzAV-RzR', 'tamil_5'].includes(s.id);
+      }
+      if (lowerName.includes('sad') || lowerName.includes('drugs') || lowerName.includes('melancholy')) {
+        return ['saavn_EzAV-RzR', 'saavn_itXw9yrX', 'saavn_fqKx7XVg', 'saavn_HifBw1Ku', 'saavn_o-IsoK2n'].includes(s.id);
+      }
+      if (lowerName.includes('motivation') || lowerName.includes('workout') || lowerName.includes('gym') || lowerName.includes('beast')) {
+        return ['tamil_6', 'tamil_1', 'tamil_4', 'saavn_Cadaj1l5', 'saavn_yYDStxbl', 'saavn_EzAV-RzR'].includes(s.id);
+      }
+      if (lowerName.includes('chill') || lowerName.includes('lo-fi') || lowerName.includes('latenight')) {
+        return ['tamil_8', 'saavn_-TFpspH-', 'tamil_7', 'saavn_asyeukc4', 'aura_song_enjoy_enjaami'].includes(s.id);
+      }
+      if (lowerName.includes('drive') || lowerName.includes('road trip')) {
+        return ['saavn_yYDStxbl', 'tamil_8', 'saavn_-TFpspH-', 'aura_song_chellamma', 'saavn_nHs_0eEA'].includes(s.id);
+      }
+      if (lowerName.includes('nostalgia') || lowerName.includes('90s') || lowerName.includes('2000s') || lowerName.includes('classics')) {
+        return ['tamil_5', 'tamil_7'].includes(s.id) || (s.language === 'ta' && (s.genre || '').includes('Classical'));
+      }
+      return (
+        s.title.toLowerCase().includes(lowerName) ||
+        s.artistName.toLowerCase().includes(lowerName) ||
+        (s.albumTitle && s.albumTitle.toLowerCase().includes(lowerName)) ||
+        (s.genre && s.genre.toLowerCase().includes(lowerName)) ||
+        (lowerName.includes('tamil') && s.language === 'ta') ||
+        (lowerName.includes('hindi') && s.language === 'hi') ||
+        (lowerName.includes('english') && s.language === 'en') ||
+        (lowerName.includes('romantic') && (s.genre || '').includes('Melody'))
+      );
+    });
 
     for (const s of curatedMatches) {
       if (isFullSong(s) && !seen.has(s.id)) {
