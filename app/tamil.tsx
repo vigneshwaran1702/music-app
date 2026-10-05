@@ -5,7 +5,8 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  RefreshControl
+  RefreshControl,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -59,6 +60,73 @@ export default function TamilMusicHubScreen() {
     classics: [],
     topArtists: []
   });
+
+  const TAMIL_VIBES = [
+    {
+      id: 'pl_vibe_party',
+      title: 'Party & Mass Vibe',
+      emoji: '🔥',
+      desc: 'High-voltage kuthu & party bangers',
+      cover: 'https://c.saavncdn.com/187/Jailer-Tamil-2023-20230728081443-500x500.jpg',
+      colors: ['#ea580c', '#991b1b'] as [string, string]
+    },
+    {
+      id: 'pl_tamil_melody',
+      title: 'Soulful Melodies',
+      emoji: '💖',
+      desc: 'Evergreen romance & acoustic love',
+      cover: 'https://c.saavncdn.com/590/I-Tamil-2014-20190822153052-500x500.jpg',
+      colors: ['#db2777', '#9333ea'] as [string, string]
+    },
+    {
+      id: 'pl_breakup_hits',
+      title: 'Breakup & Failure',
+      emoji: '💔',
+      desc: '3 AM heartache & healing tracks',
+      cover: 'https://c.saavncdn.com/470/David-2012-500x500.jpg',
+      colors: ['#475569', '#1e293b'] as [string, string]
+    },
+    {
+      id: 'pl_sad_melancholy',
+      title: 'Sad & Yuvan Drugs',
+      emoji: '🌧️',
+      desc: 'Deep emotion & rainy night blues',
+      cover: 'https://c.saavncdn.com/artists/Yuvan_Shankar_Raja_002_20180802174245_500x500.webp',
+      colors: ['#0284c7', '#1e3a8a'] as [string, string]
+    },
+    {
+      id: 'pl_motivation_workout',
+      title: 'Beast Motivation',
+      emoji: '⚡',
+      desc: 'Gym adrenaline & champion fire',
+      cover: 'https://c.saavncdn.com/415/Leo-Original-Motion-Picture-Soundtrack-English-2023-20231019170311-500x500.jpg',
+      colors: ['#eab308', '#c2410c'] as [string, string]
+    },
+    {
+      id: 'pl_latenight_chill',
+      title: 'Late Night Chill',
+      emoji: '🌙',
+      desc: 'Mellow lo-fi & midnight calm',
+      cover: 'https://c.saavncdn.com/118/Katchi-Sera-From-Think-Indie-Tamil-2024-20251026074526-500x500.jpg',
+      colors: ['#7c3aed', '#312e81'] as [string, string]
+    },
+    {
+      id: 'pl_longdrive_vibe',
+      title: 'Long Drive & Trip',
+      emoji: '🚗',
+      desc: 'Windows down highway cruising',
+      cover: 'https://c.saavncdn.com/492/Mersal-Tamil-2017-20170820120559-500x500.webp',
+      colors: ['#059669', '#065f46'] as [string, string]
+    },
+    {
+      id: 'pl_nostalgia_classics',
+      title: '90s & 2000s Classics',
+      emoji: '📻',
+      desc: 'Timeless Ilaiyaraaja & Rahman magic',
+      cover: 'https://c.saavncdn.com/artists/AR_Rahman_002_20210120084455_500x500.webp',
+      colors: ['#d97706', '#78350f'] as [string, string]
+    }
+  ];
 
   useEffect(() => {
     fetchTamilData();
@@ -218,6 +286,49 @@ export default function TamilMusicHubScreen() {
             ) : (
               /* All Categories View */
               <>
+                {/* 0. Tamil Vibe & Mood Playlists */}
+                <View style={styles.sectionContainer}>
+                  <View style={styles.sectionHeaderRow}>
+                    <View style={styles.titleWithIcon}>
+                      <Ionicons name="sparkles" size={20} color="#a855f7" />
+                      <Text style={styles.sectionTitle}>Vibe & Mood Playlists</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => router.push('/playlists')}>
+                      <Text style={styles.seeAllText}>All Playlists</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.horizontalScroll}
+                  >
+                    {TAMIL_VIBES.map((vibe) => (
+                      <TouchableOpacity
+                        key={vibe.id}
+                        style={styles.vibeCard}
+                        onPress={() => router.push(`/playlist/${vibe.id}` as any)}
+                        activeOpacity={0.85}
+                      >
+                        <Image source={{ uri: vibe.cover }} style={styles.vibeCover} />
+                        <LinearGradient
+                          colors={vibe.colors}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.vibeGradientBar}
+                        />
+                        <View style={styles.vibeMeta}>
+                          <Text style={styles.vibeTitle} numberOfLines={1}>
+                            {vibe.emoji} {vibe.title}
+                          </Text>
+                          <Text style={styles.vibeDesc} numberOfLines={2}>
+                            {vibe.desc}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
                 {/* 1. Tamil Trending Now */}
                 {data.trending.length > 0 && (
                   <View style={styles.sectionContainer}>
@@ -568,5 +679,37 @@ const styles = StyleSheet.create({
   },
   listGrid: {
     paddingHorizontal: 24
+  },
+  vibeCard: {
+    width: 145,
+    marginRight: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#181818',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)'
+  },
+  vibeCover: {
+    width: 145,
+    height: 145,
+    borderRadius: 10
+  },
+  vibeGradientBar: {
+    height: 3,
+    width: '100%'
+  },
+  vibeMeta: {
+    padding: 10
+  },
+  vibeTitle: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 4
+  },
+  vibeDesc: {
+    color: '#a7a7a7',
+    fontSize: 11,
+    lineHeight: 14
   }
 });

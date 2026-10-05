@@ -124,7 +124,7 @@ export default function PlaylistsScreen() {
     );
   }
 
-  const [filter, setFilter] = useState<'all' | 'languages' | 'artists' | 'curated' | 'custom'>('all');
+  const [filter, setFilter] = useState<'all' | 'vibes' | 'languages' | 'artists' | 'curated' | 'custom'>('all');
 
   const isLanguagePl = (pl: Playlist) =>
     pl.id.startsWith('pl_lang_') ||
@@ -134,8 +134,28 @@ export default function PlaylistsScreen() {
     pl.title.includes('🇪🇸') ||
     pl.title.includes('🇯🇵');
 
+  const isVibePl = (pl: Playlist) =>
+    pl.id.startsWith('pl_vibe_') ||
+    pl.id.startsWith('pl_breakup_') ||
+    pl.id.startsWith('pl_sad_') ||
+    pl.id.startsWith('pl_motivation_') ||
+    pl.id.startsWith('pl_tamil_melody') ||
+    pl.id.startsWith('pl_romantic_') ||
+    pl.id.startsWith('pl_latenight_') ||
+    pl.id.startsWith('pl_longdrive_') ||
+    pl.id.startsWith('pl_nostalgia_') ||
+    pl.title.toLowerCase().includes('vibe') ||
+    pl.title.toLowerCase().includes('breakup') ||
+    pl.title.toLowerCase().includes('sad') ||
+    pl.title.toLowerCase().includes('motivation') ||
+    pl.title.toLowerCase().includes('melod') ||
+    pl.title.toLowerCase().includes('chill') ||
+    pl.title.toLowerCase().includes('drive') ||
+    pl.title.toLowerCase().includes('nostalgia');
+
   const isArtistPl = (pl: Playlist) =>
     !isLanguagePl(pl) &&
+    !isVibePl(pl) &&
     (pl.id.startsWith('pl_artist_') ||
       [
         'pl_anirudh_hits',
@@ -151,14 +171,16 @@ export default function PlaylistsScreen() {
       pl.title.toLowerCase().includes('masterpieces') ||
       pl.title.toLowerCase().includes('vocal magic'));
 
+  const vibePlaylistsCount = playlists.filter(isVibePl).length;
   const languagePlaylistsCount = playlists.filter(isLanguagePl).length;
   const artistPlaylistsCount = playlists.filter(isArtistPl).length;
 
   const filteredPlaylists = playlists.filter((pl) => {
+    if (filter === 'vibes') return isVibePl(pl);
     if (filter === 'languages') return isLanguagePl(pl);
     if (filter === 'artists') return isArtistPl(pl);
-    if (filter === 'curated') return !pl.isCustom && !isArtistPl(pl) && !isLanguagePl(pl);
-    if (filter === 'custom') return pl.isCustom && !isArtistPl(pl) && !isLanguagePl(pl);
+    if (filter === 'curated') return !pl.isCustom && !isArtistPl(pl) && !isLanguagePl(pl) && !isVibePl(pl);
+    if (filter === 'custom') return pl.isCustom && !isArtistPl(pl) && !isLanguagePl(pl) && !isVibePl(pl);
     return true;
   });
 
@@ -171,7 +193,7 @@ export default function PlaylistsScreen() {
         <View style={[styles.topRow, isMobile && { paddingHorizontal: 16, paddingTop: 14, marginBottom: 14, flexWrap: 'wrap', gap: 12 }]}>
           <View>
             <Text style={[styles.headerTitle, isMobile && { fontSize: 24 }]}>Your Playlists</Text>
-            <Text style={styles.headerSubtitle}>Separated language playlists, curated mixes & artist hits.</Text>
+            <Text style={styles.headerSubtitle}>Vibe mixes, separated languages & artist hits.</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TouchableOpacity
@@ -201,6 +223,15 @@ export default function PlaylistsScreen() {
           >
             <Text style={[styles.filterPillText, filter === 'all' && styles.filterPillTextActive]}>
               All ({playlists.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterPill, filter === 'vibes' && styles.filterPillActive]}
+            onPress={() => setFilter('vibes')}
+          >
+            <Text style={[styles.filterPillText, filter === 'vibes' && styles.filterPillTextActive]}>
+              Vibes & Moods 🎧 ({vibePlaylistsCount})
             </Text>
           </TouchableOpacity>
 

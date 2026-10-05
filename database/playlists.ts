@@ -124,6 +124,154 @@ const CURATED_DEFAULT_PLAYLISTS: Playlist[] = [
     isCustom: false
   },
 
+  // --- Vibe & Mood Curated Playlists ---
+  {
+    id: 'pl_vibe_party',
+    title: 'Tamil Party & Mass Vibe 🔥',
+    description: 'High-voltage Tamil dance party, kuthu beats, and energetic chartbusters to light up the mood.',
+    coverUrl: 'https://c.saavncdn.com/187/Jailer-Tamil-2023-20230728081443-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 7,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) =>
+        s.id === 'tamil_1' ||
+        s.id === 'tamil_2' ||
+        s.id === 'tamil_3' ||
+        s.id === 'tamil_4' ||
+        s.id === 'saavn_nHs_0eEA' ||
+        s.id === 'saavn__GIuQbB_' ||
+        s.id === 'aura_song_chellamma'
+    ),
+    isCustom: false
+  },
+  {
+    id: 'pl_tamil_melody',
+    title: 'Soulful Tamil Melodies 💖',
+    description: 'Evergreen romantic tracks, heartwarming acoustic strings, and timeless love melodies.',
+    coverUrl: 'https://c.saavncdn.com/590/I-Tamil-2014-20190822153052-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 6,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) =>
+        s.id === 'tamil_5' ||
+        s.id === 'tamil_7' ||
+        s.id === 'saavn_asyeukc4' ||
+        s.id === 'saavn_-TFpspH-' ||
+        s.id === 'saavn_fqKx7XVg' ||
+        s.id === 'saavn_HifBw1Ku'
+    ),
+    isCustom: false
+  },
+  {
+    id: 'pl_breakup_hits',
+    title: 'Tamil Breakup & Love Failure 💔',
+    description: '3 AM heartbreak anthems, painful memories, and emotional healing tracks.',
+    coverUrl: 'https://c.saavncdn.com/470/David-2012-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 5,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) =>
+        s.id === 'saavn_itXw9yrX' ||
+        s.id === 'saavn_o-IsoK2n' ||
+        s.id === 'saavn_fqKx7XVg' ||
+        s.id === 'saavn_EzAV-RzR' ||
+        s.id === 'tamil_5'
+    ),
+    isCustom: false
+  },
+  {
+    id: 'pl_sad_melancholy',
+    title: 'Sad Songs & Yuvan Drugs 🌧️',
+    description: 'Soul-stirring melancholy, rainy night feelings, deep emotion, and introspective melodies.',
+    coverUrl: 'https://c.saavncdn.com/artists/Yuvan_Shankar_Raja_002_20180802174245_500x500.webp',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 5,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) =>
+        s.id === 'saavn_EzAV-RzR' ||
+        s.id === 'saavn_itXw9yrX' ||
+        s.id === 'saavn_fqKx7XVg' ||
+        s.id === 'saavn_HifBw1Ku' ||
+        s.id === 'saavn_o-IsoK2n'
+    ),
+    isCustom: false
+  },
+  {
+    id: 'pl_motivation_workout',
+    title: 'Tamil Workout & Beast Motivation ⚡',
+    description: 'Adrenaline-pumping beast mode tracks, hard-hitting gym motivation, and champion anthems.',
+    coverUrl: 'https://c.saavncdn.com/415/Leo-Original-Motion-Picture-Soundtrack-English-2023-20231019170311-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 5,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) =>
+        s.id === 'tamil_6' ||
+        s.id === 'tamil_1' ||
+        s.id === 'tamil_4' ||
+        s.id === 'saavn_Cadaj1l5' ||
+        s.id === 'saavn_yYDStxbl'
+    ),
+    isCustom: false
+  },
+  {
+    id: 'pl_latenight_chill',
+    title: 'Late Night Chill & Lo-Fi 🌙',
+    description: 'Mellow acoustic rhythms, soothing Tamil lo-fi, and midnight peaceful vibes.',
+    coverUrl: 'https://c.saavncdn.com/118/Katchi-Sera-From-Think-Indie-Tamil-2024-20251026074526-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 5,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) =>
+        s.id === 'tamil_8' ||
+        s.id === 'saavn_-TFpspH-' ||
+        s.id === 'tamil_7' ||
+        s.id === 'saavn_asyeukc4' ||
+        s.id === 'aura_song_enjoy_enjaami'
+    ),
+    isCustom: false
+  },
+  {
+    id: 'pl_longdrive_vibe',
+    title: 'Tamil Long Drive & Road Trip 🚗',
+    description: 'Windows down, breezy highway melodies, and feel-good cruising tracks.',
+    coverUrl: 'https://c.saavncdn.com/492/Mersal-Tamil-2017-20170820120559-500x500.webp',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 5,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) =>
+        s.id === 'saavn_yYDStxbl' ||
+        s.id === 'tamil_8' ||
+        s.id === 'saavn_-TFpspH-' ||
+        s.id === 'aura_song_chellamma' ||
+        s.id === 'saavn_nHs_0eEA'
+    ),
+    isCustom: false
+  },
+  {
+    id: 'pl_nostalgia_classics',
+    title: '90s & 2000s Nostalgia Classics 📻',
+    description: 'Evergreen golden era classics from Ilaiyaraaja, early A.R. Rahman, and Vidyasagar.',
+    coverUrl: 'https://c.saavncdn.com/artists/AR_Rahman_002_20210120084455_500x500.webp',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 5,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) =>
+        s.id === 'tamil_5' ||
+        s.id === 'tamil_7' ||
+        s.artistId === 'artist_arrahman' ||
+        s.artistId === 'artist_harris'
+    ).slice(0, 5),
+    isCustom: false
+  },
+
   // --- Artist & Curated Mixes ---
   {
     id: 'pl_tamil_blockbusters',
