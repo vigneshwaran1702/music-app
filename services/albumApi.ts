@@ -13,10 +13,17 @@ export const albumApi = {
       ]);
 
       const map = new Map<string, Album>();
-      for (const al of [...CURATED_ALBUMS, ...saavnAlbums, ...itunesAlbums]) {
-        const key = al.title.toLowerCase().trim();
-        if (!map.has(key)) {
-          map.set(key, al);
+      // Preserve CURATED_ALBUMS order at the top
+      for (const al of CURATED_ALBUMS) {
+        map.set(al.id, al);
+      }
+      for (const al of [...saavnAlbums, ...itunesAlbums]) {
+        const titleKey = al.title.toLowerCase().trim();
+        const alreadyExists = Array.from(map.values()).some(
+          (item) => item.title.toLowerCase().trim() === titleKey
+        );
+        if (!alreadyExists) {
+          map.set(al.id, al);
         }
       }
       return Array.from(map.values());
@@ -25,28 +32,56 @@ export const albumApi = {
     }
   },
 
+  async getTamilMoodAlbums(): Promise<Album[]> {
+    return CURATED_ALBUMS.filter((al) => al.id.startsWith('album_tamil_'));
+  },
+
+  async getAlbumsByMood(mood: string): Promise<Album[]> {
+    if (!mood || mood === 'all') return this.getAllAlbums();
+    return CURATED_ALBUMS.filter(
+      (al) => (al.mood && al.mood.toLowerCase() === mood.toLowerCase()) ||
+              (al.genre && al.genre.toLowerCase().includes(mood.toLowerCase()))
+    );
+  },
+
   async getAlbumById(albumId: string): Promise<Album | null> {
     // 1. Direct match in CURATED_ALBUMS
     const curated = CURATED_ALBUMS.find((al) => al.id === albumId);
     if (curated) {
+      if (curated.tracks && curated.tracks.length > 0) {
+        return curated;
+      }
       const matchingCurated = CURATED_FEATURED_SONGS.filter((s) => s.albumId === albumId);
       try {
-        const cleanTitle = curated.title
+        const queryToUse = (curated.searchQuery || curated.title)
           .replace('(Original Soundtrack)', '')
           .replace('(Original Motion Picture Soundtrack)', '')
           .trim();
-        const liveTracks = await jioSaavnApi.searchSongs(cleanTitle, 25);
-        const tracks = liveTracks.length > 0 ? liveTracks : matchingCurated;
+        const liveTracks = await jioSaavnApi.searchSongs(queryToUse, 30);
+        
+        // Merge matching curated tracks + live tracks, avoiding duplicate song titles
+        const tracks = [
+          ...matchingCurated,
+          ...liveTracks.filter(
+            (lt) =>
+              !matchingCurated.some(
+                (mc) =>
+                  mc.id === lt.id ||
+                  mc.title.toLowerCase().trim() === lt.title.toLowerCase().trim()
+              )
+          )
+        ];
+
         return {
           ...curated,
           tracks: tracks.length > 0 ? tracks : matchingCurated,
-          trackCount: tracks.length || matchingCurated.length || 5
+          trackCount: tracks.length || matchingCurated.length || curated.trackCount || 10
         };
       } catch {
         return {
           ...curated,
-          tracks: matchingCurated.length > 0 ? matchingCurated : CURATED_FEATURED_SONGS.slice(0, 5),
-          trackCount: matchingCurated.length || 5
+          tracks: matchingCurated.length > 0 ? matchingCurated : CURATED_FEATURED_SONGS.filter(s => s.language === 'ta').slice(0, 10),
+          trackCount: matchingCurated.length || curated.trackCount || 10
         };
       }
     }

@@ -19,7 +19,9 @@ import { Song } from '../types/music';
 import { Artist } from '../types/artist';
 import { SongCard } from '../components/SongCard';
 import { ArtistCard } from '../components/ArtistCard';
+import { AlbumCard } from '../components/AlbumCard';
 import { Loading } from '../components/Loading';
+import { CURATED_ALBUMS } from '../client-api/sources';
 
 type TamilCategory =
   | 'all'
@@ -286,7 +288,29 @@ export default function TamilMusicHubScreen() {
             ) : (
               /* All Categories View */
               <>
-                {/* 0. Tamil Vibe & Mood Playlists */}
+                {/* 0a. Tamil Mood & Vibe Albums */}
+                <View style={styles.sectionContainer}>
+                  <View style={styles.sectionHeaderRow}>
+                    <View style={styles.titleWithIcon}>
+                      <Ionicons name="disc" size={20} color="#f43f5e" />
+                      <Text style={styles.sectionTitle}>Tamil Mood Albums • தமிழ் ஆல்பங்கள்</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => router.push('/albums?filter=tamil' as any)}>
+                      <Text style={styles.seeAllText}>All Albums</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.horizontalScroll}
+                  >
+                    {CURATED_ALBUMS.filter((al) => al.id.startsWith('album_tamil_')).map((album) => (
+                      <AlbumCard key={album.id} album={album} />
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* 0b. Tamil Vibe & Mood Playlists */}
                 <View style={styles.sectionContainer}>
                   <View style={styles.sectionHeaderRow}>
                     <View style={styles.titleWithIcon}>

@@ -271,6 +271,61 @@ const CURATED_DEFAULT_PLAYLISTS: Playlist[] = [
     ).slice(0, 5),
     isCustom: false
   },
+  {
+    id: 'pl_tamil_happy',
+    title: 'Tamil Happy & Feel Good Vibes 🎉',
+    description: 'Instant dopamine hits, joyful celebrations, and cheerful upbeat melodies.',
+    coverUrl: 'https://c.saavncdn.com/312/Doctor-Tamil-2021-20211005133149-500x500.webp',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 5,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) =>
+        s.id === 'aura_song_chellamma' ||
+        s.id === 'saavn__GIuQbB_' ||
+        s.id === 'saavn_-TFpspH-' ||
+        s.id === 'saavn_Eq9r0qaR' ||
+        s.id === 'tamil_8'
+    ),
+    isCustom: false
+  },
+  {
+    id: 'pl_morning_vibe',
+    title: 'Tamil Morning Vibe & Sunrise 🌅',
+    description: 'Fresh sunrise ragas, positive vibrations, and gentle dawn breezes to kickstart your day.',
+    coverUrl: 'https://c.saavncdn.com/420/Vendhu-Thanindhathu-Kaadu-Original-Motion-Picture-Soundtrack-Tamil-2022-20250905072731-500x500.webp',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 5,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) =>
+        s.id === 'saavn_HifBw1Ku' ||
+        s.id === 'tamil_7' ||
+        s.id === 'tamil_5' ||
+        s.id === 'saavn_fqKx7XVg' ||
+        s.id === 'saavn_-TFpspH-'
+    ),
+    isCustom: false
+  },
+  {
+    id: 'pl_tamil_kuthu',
+    title: 'Tamil Thara Local Kuthu 🥁',
+    description: 'High-voltage dappan kuthu, raw mass beats, and whistle-podu dance anthems.',
+    coverUrl: 'https://c.saavncdn.com/187/Jailer-Tamil-2023-20230728081443-500x500.jpg',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    songCount: 6,
+    tracks: CURATED_FEATURED_SONGS.filter(
+      (s) =>
+        s.id === 'tamil_1' ||
+        s.id === 'tamil_2' ||
+        s.id === 'tamil_3' ||
+        s.id === 'tamil_4' ||
+        s.id === 'saavn_nHs_0eEA' ||
+        s.id === 'saavn__GIuQbB_'
+    ),
+    isCustom: false
+  },
 
   // --- Artist & Curated Mixes ---
   {

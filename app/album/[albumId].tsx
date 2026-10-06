@@ -71,7 +71,11 @@ export default function AlbumDetailScreen() {
 
         {/* Album Hero Header */}
         <LinearGradient
-          colors={['#1e3a5f', '#142033', '#121212']}
+          colors={
+            album.gradient
+              ? [album.gradient[0], album.gradient[1], '#121212']
+              : ['#1e3a5f', '#142033', '#121212']
+          }
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={[
@@ -82,8 +86,25 @@ export default function AlbumDetailScreen() {
           <Image source={{ uri: album.coverUrl }} style={[styles.cover, isMobile && { width: 150, height: 150 }]} />
 
           <View style={[styles.metaCol, isMobile && { alignItems: 'center' }]}>
-            <Text style={styles.typeLabel}>ALBUM</Text>
+            <View style={[styles.typeBadgeRow, isMobile && { justifyContent: 'center' }]}>
+              <Text style={styles.typeLabel}>ALBUM</Text>
+              {album.badge && (
+                <View style={styles.badgePill}>
+                  <Text style={styles.badgeText}>{album.badge}</Text>
+                </View>
+              )}
+            </View>
             <Text style={[styles.title, isMobile && { fontSize: 24, textAlign: 'center' }]}>{album.title}</Text>
+            {album.tamilTitle && album.tamilTitle !== album.title && (
+              <Text style={[styles.tamilHeaderSubtitle, isMobile && { textAlign: 'center' }]}>
+                {album.tamilTitle}
+              </Text>
+            )}
+            {album.description ? (
+              <Text style={[styles.albumDesc, isMobile && { textAlign: 'center' }]} numberOfLines={3}>
+                {album.description}
+              </Text>
+            ) : null}
             <View style={styles.artistMetaRow}>
               <Text style={styles.artist}>{album.artistName}</Text>
               <Text style={styles.dot}>•</Text>
@@ -163,19 +184,49 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end'
   },
+  typeBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6
+  },
   typeLabel: {
     fontSize: 11,
     fontWeight: '800',
     color: '#ffffff',
-    letterSpacing: 0.8,
-    marginBottom: 4
+    letterSpacing: 0.8
+  },
+  badgePill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)'
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#ffffff'
   },
   title: {
-    fontSize: 38,
+    fontSize: 36,
     fontWeight: '900',
     color: '#ffffff',
     letterSpacing: -0.8,
+    marginBottom: 4
+  },
+  tamilHeaderSubtitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1ed760',
     marginBottom: 8
+  },
+  albumDesc: {
+    fontSize: 13,
+    color: '#d1d5db',
+    lineHeight: 18,
+    marginBottom: 10
   },
   artistMetaRow: {
     flexDirection: 'row',
