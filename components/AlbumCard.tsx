@@ -32,6 +32,11 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({ album, size = 146 }) => {
     >
       <View style={[styles.coverWrapper, { width: size, height: size }]}>
         <Image source={{ uri: album.coverUrl }} style={styles.cover} />
+        {album.badge && (
+          <View style={styles.badgePill}>
+            <Text style={styles.badgeText}>{album.badge}</Text>
+          </View>
+        )}
         <View style={[styles.floatingPlayBtn, isHovered && styles.floatingPlayBtnVisible]}>
           <Ionicons name="play" size={20} color="#000000" />
         </View>
@@ -39,6 +44,11 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({ album, size = 146 }) => {
       <Text numberOfLines={1} style={styles.title}>
         {album.title}
       </Text>
+      {album.tamilTitle && album.tamilTitle !== album.title ? (
+        <Text numberOfLines={1} style={styles.tamilSubtitle}>
+          {album.tamilTitle}
+        </Text>
+      ) : null}
       <Text numberOfLines={1} style={styles.artist}>
         {album.releaseDate ? `${album.releaseDate.slice(0, 4)} • ` : ''}{album.artistName}
       </Text>
@@ -97,14 +107,37 @@ const styles = StyleSheet.create({
     transform: [{ translateY: 0 }]
   },
   title: {
-    marginTop: 12,
+    marginTop: 10,
     fontSize: 14,
     fontWeight: '700',
     color: '#ffffff'
   },
+  tamilSubtitle: {
+    marginTop: 2,
+    fontSize: 11,
+    color: '#1ed760',
+    fontWeight: '600'
+  },
   artist: {
-    marginTop: 4,
+    marginTop: 3,
     fontSize: 12,
     color: '#a7a7a7'
+  },
+  badgePill: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)'
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.3
   }
 });

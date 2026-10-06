@@ -379,11 +379,16 @@ export default function HomeScreen() {
               </ScrollView>
             </View>
 
-            {/* 5. Popular Albums & Soundtracks */}
+            {/* 5. Tamil Mood & Vibe Albums */}
             <View style={styles.sectionBlock}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Popular Albums & Soundtracks</Text>
-                <TouchableOpacity onPress={() => router.push('/albums' as any)}>
+                <View>
+                  <Text style={styles.sectionTitle}>Tamil Mood & Vibe Albums • தமிழ் ஆல்பங்கள்</Text>
+                  <Text style={{ fontSize: 12, color: '#a1a1aa', marginTop: 2 }}>
+                    காதல், பிரிவு, சோகம், மகிழ்ச்சி, மெலடி, குத்து & வைப்
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => router.push('/albums?filter=tamil' as any)}>
                   <Text style={styles.showAllText}>Show all</Text>
                 </TouchableOpacity>
               </View>
@@ -393,7 +398,26 @@ export default function HomeScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.cardsRow}
               >
-                {CURATED_ALBUMS.map((album) => (
+                {CURATED_ALBUMS.filter((al) => al.id.startsWith('album_tamil_')).map((album) => (
+                  <AlbumCard key={album.id} album={album} />
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* 5b. Movie Soundtracks & OSTs */}
+            <View style={styles.sectionBlock}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Blockbuster Soundtracks & OSTs</Text>
+                <TouchableOpacity onPress={() => router.push('/albums?filter=soundtrack' as any)}>
+                  <Text style={styles.showAllText}>Show all</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.cardsRow}
+              >
+                {CURATED_ALBUMS.filter((al) => !al.id.startsWith('album_tamil_')).map((album) => (
                   <AlbumCard key={album.id} album={album} />
                 ))}
               </ScrollView>
