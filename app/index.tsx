@@ -159,7 +159,7 @@ export default function HomeScreen() {
               <Image
                 source={require('../assets/icons/aura-logo.png')}
                 style={styles.mobileLogo}
-                resizeMode="cover"
+                resizeMode="contain"
               />
               <Text style={styles.mobileBrandText}>Aura Music</Text>
             </TouchableOpacity>
@@ -498,9 +498,9 @@ const styles = StyleSheet.create({
     gap: 8
   },
   mobileLogo: {
-    width: 32,
-    height: 32,
-    borderRadius: 16
+    width: 34,
+    height: 34,
+    borderRadius: 17
   },
   mobileBrandText: {
     fontSize: 16,
