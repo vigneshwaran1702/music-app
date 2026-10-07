@@ -73,11 +73,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
           activeOpacity={0.8}
           onPress={() => handleNav('/')}
         >
-          <Image
-            source={require('../assets/icons/aura-logo.png')}
-            style={styles.brandLogo}
-            resizeMode="cover"
-          />
+          <View style={styles.brandLogoWrapper}>
+            <Image
+              source={require('../assets/icons/aura-logo.png')}
+              style={styles.brandLogo}
+              resizeMode="contain"
+            />
+          </View>
           <View>
             <Text style={styles.brandName}>{APP_CONFIG.APP_NAME}</Text>
             <Text style={styles.brandTagline}>STREAM & DISCOVER</Text>
@@ -280,8 +282,23 @@ const styles = StyleSheet.create({
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 4
+    gap: 12,
+    marginBottom: 6
+  },
+  brandLogoWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0a0b10',
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.35)',
+    shadowColor: '#06b6d4',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
   },
   brandLogo: {
     width: 38,

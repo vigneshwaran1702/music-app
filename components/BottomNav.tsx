@@ -103,17 +103,16 @@ const styles = StyleSheet.create({
     position: 'relative'
   },
   tabLogoIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12
+    width: 26,
+    height: 26,
+    borderRadius: 13
   },
   tabLogoIconActive: {
     opacity: 1,
-    borderWidth: 1.5,
-    borderColor: APP_CONFIG.THEME.accentPrimary
+    transform: [{ scale: 1.08 }]
   },
   tabLogoIconInactive: {
-    opacity: 0.55
+    opacity: 0.75
   },
   dot: {
     position: 'absolute',
