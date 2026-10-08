@@ -18,8 +18,10 @@ export interface Song {
   playCount?: number;
   isFavorite?: boolean;
   isDownloaded?: boolean;
+  trendingSource?: 'youtube' | 'instagram' | 'spotify' | 'google';
 }
 
+export type TrendingPlatform = 'youtube' | 'instagram' | 'spotify' | 'google';
 export type PlaybackMode = 'normal' | 'repeat-all' | 'repeat-one' | 'shuffle';
 
 export interface PlaybackStatus {

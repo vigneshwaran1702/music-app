@@ -10,15 +10,28 @@ import { Album } from '../types/album';
 import { dbStorage } from '../database/storage';
 import { deduplicateSongs } from '../utils/filterMusic';
 
+export function shuffleArray<T>(list: T[]): T[] {
+  const arr = [...list];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export const musicApi = {
   async getFeed(): Promise<{
     featured: Song[];
     trending: Song[];
+    youtubeTrending: Song[];
+    instagramTrending: Song[];
+    spotifyTrending: Song[];
+    googleTrending: Song[];
     newReleases: Song[];
     chillOut: Song[];
   }> {
     try {
-      // Parallel fetch across JioSaavn queries (all returning 100% full-length 320kbps tracks)
+      // Parallel fetch across JioSaavn & YouTube queries (all returning 100% full-length 320kbps tracks)
       const [
         saavnTrending,
         saavnTamil,
@@ -27,7 +40,10 @@ export const musicApi = {
         saavnGlobalHits,
         saavnChill,
         ytTamilTrending,
-        ytGlobalTrending
+        ytGlobalTrending,
+        saavnInsta,
+        saavnSpotify,
+        saavnGoogle
       ] = await Promise.all([
         jioSaavnApi.getTrendingSongs(30).catch(() => []),
         jioSaavnApi.searchSongs('Top Tamil Hits Anirudh AR Rahman 2024', 25).catch(() => []),
@@ -36,7 +52,10 @@ export const musicApi = {
         jioSaavnApi.searchSongs('Top English Pop Hits Taylor Swift The Weeknd Ed Sheeran', 25).catch(() => []),
         jioSaavnApi.searchSongs('Lo-Fi Chill Acoustic Melodies Instrumental', 20).catch(() => []),
         youtubeApi.searchSongs('Top Trending Tamil Songs 2024 Anirudh', 10).catch(() => []),
-        youtubeApi.searchSongs('Trending YouTube Music Hits 2024', 10).catch(() => [])
+        youtubeApi.searchSongs('Trending YouTube Music Hits 2024', 10).catch(() => []),
+        jioSaavnApi.searchSongs('Instagram Reels Trending Viral Songs 2024', 25).catch(() => []),
+        jioSaavnApi.searchSongs('Spotify Top 50 Global Chartbusters 2024', 25).catch(() => []),
+        jioSaavnApi.searchSongs('Google Trends Top Searched Songs Soundtracks 2024', 25).catch(() => [])
       ]);
 
       const dedupe = (list: Song[]): Song[] => {
@@ -56,42 +75,153 @@ export const musicApi = {
         });
       };
 
+      // 1. YouTube Trending curation & tag
+      const curatedYouTubeIds = new Set([
+        'tamil_3', // Arabic Kuthu
+        'saavn_o-IsoK2n', // Why This Kolaveri Di
+        'saavn__GIuQbB_', // Rowdy Baby
+        'tamil_1', // Hukum
+        'tamil_2', // Naa Ready
+        'hi_1', // Tauba Tauba
+        'aura_song_enjoy_enjaami', // Enjoy Enjaami
+        'en_1', // Shape of You
+        'en_2', // Blinding Lights
+        'tamil_4', // Pathala Pathala
+        'tamil_6', // Badass
+        'saavn_rtIe2EtQ', // Hukum Telugu
+        'aura_song_chellamma' // Chellamma
+      ]);
+      const curatedYouTube = CURATED_FEATURED_SONGS.filter((s) => curatedYouTubeIds.has(s.id));
+      const rawYouTube = dedupe([
+        ...ytGlobalTrending,
+        ...ytTamilTrending,
+        ...curatedYouTube,
+        ...saavnTrending.filter((s) => s.genre?.includes('Kuthu') || s.genre?.includes('Dance')),
+        ...saavnTamil.slice(0, 8)
+      ]).map((s) => ({ ...s, trendingSource: 'youtube' as const }));
+      const youtubeTrending = shuffleArray(rawYouTube);
+
+      // 2. Instagram Reels Viral curation & tag
+      const curatedInstaIds = new Set([
+        'tamil_8', // Katchi Sera (Sai Abhyankkar)
+        'ml_1', // Illuminati (Aavesham)
+        'hi_1', // Tauba Tauba (Karan Aujla)
+        'saavn_0dzY-v29', // Kinni Kinni (Diljit Dosanjh)
+        'saavn_DF6eazs2', // Winning Speech
+        'saavn_xzUVX40K', // Brown Munde
+        'saavn_aAOXwvz-', // Born to Shine
+        'aura_song_chellamma', // Chellamma
+        'en_3', // Cruel Summer
+        'saavn_nHs_0eEA', // Kaavaalaa
+        'tamil_2' // Naa Ready
+      ]);
+      const curatedInsta = CURATED_FEATURED_SONGS.filter((s) => curatedInstaIds.has(s.id));
+      const rawInstagram = dedupe([
+        ...saavnInsta,
+        ...curatedInsta,
+        ...saavnNew.filter((s) => s.genre?.includes('Indie') || s.genre?.includes('Pop')),
+        ...saavnTrending.slice(5, 15)
+      ]).map((s) => ({ ...s, trendingSource: 'instagram' as const }));
+      const instagramTrending = shuffleArray(rawInstagram);
+
+      // 3. Spotify Top Charts curation & tag
+      const curatedSpotifyIds = new Set([
+        'en_3', // Cruel Summer
+        'en_2', // Blinding Lights
+        'en_1', // Shape of You
+        'hi_2', // Chaleya
+        'hi_3', // Kesariya
+        'hi_1', // Tauba Tauba
+        'ml_1', // Illuminati
+        'tamil_1', // Hukum
+        'tamil_2', // Naa Ready
+        'tamil_5', // Ennodu Nee Irundhaal
+        'tamil_7', // Vaseegara
+        'saavn_yYDStxbl' // Aalaporaan Thamizhan
+      ]);
+      const curatedSpotify = CURATED_FEATURED_SONGS.filter((s) => curatedSpotifyIds.has(s.id));
+      const rawSpotify = dedupe([
+        ...saavnSpotify,
+        ...curatedSpotify,
+        ...saavnGlobalHits,
+        ...saavnTrending.slice(0, 12)
+      ]).map((s) => ({ ...s, trendingSource: 'spotify' as const }));
+      const spotifyTrending = shuffleArray(rawSpotify);
+
+      // 4. Google Search Trends curation & tag
+      const curatedGoogleIds = new Set([
+        'tamil_2', // Naa Ready - Leo
+        'tamil_6', // Badass - Leo
+        'tamil_1', // Hukum - Jailer
+        'saavn_nHs_0eEA', // Kaavaalaa - Jailer
+        'ml_1', // Illuminati - Aavesham
+        'hi_1', // Tauba Tauba - Bad Newz
+        'tamil_8', // Katchi Sera
+        'hi_3', // Kesariya - Brahmastra
+        'hi_2', // Chaleya - Jawan
+        'saavn_Eq9r0qaR', // Spark - GOAT
+        'saavn_HifBw1Ku', // Marakkuma Nenjam
+        'tamil_4' // Pathala Pathala
+      ]);
+      const curatedGoogle = CURATED_FEATURED_SONGS.filter((s) => curatedGoogleIds.has(s.id));
+      const rawGoogle = dedupe([
+        ...saavnGoogle,
+        ...curatedGoogle,
+        ...saavnTamil.slice(4, 16),
+        ...saavnBollywood.slice(0, 10)
+      ]).map((s) => ({ ...s, trendingSource: 'google' as const }));
+      const googleTrending = shuffleArray(rawGoogle);
+
       const allTrending = dedupe([
         ...CURATED_FEATURED_SONGS,
         ...saavnTrending,
         ...saavnTamil,
         ...saavnGlobalHits,
         ...saavnBollywood,
+        ...saavnInsta,
+        ...saavnSpotify,
+        ...saavnGoogle,
         ...ytTamilTrending,
         ...ytGlobalTrending
       ]);
 
-      const featured = allTrending.slice(0, 15);
-      const trending = allTrending.length > 0 ? allTrending : CURATED_FEATURED_SONGS;
-      const newDrops = dedupe([...saavnNew, ...saavnGlobalHits, ...ytTamilTrending, ...saavnTamil.slice(6)]);
-      const chillTracks = dedupe([
-        ...saavnChill,
-        ...trending.filter((s) =>
-          ['Lo-Fi', 'Chill', 'Acoustic', 'Melody', 'Ambient', 'Piano'].some((g) =>
-            (s.genre || '').includes(g) || (s.title || '').includes(g)
-          )
-        ),
-        ...CURATED_FEATURED_SONGS.filter((s) => (s.genre || '').includes('Melody') || (s.genre || '').includes('Romantic'))
-      ]);
+      const shuffledTrending = shuffleArray(allTrending.length > 0 ? allTrending : CURATED_FEATURED_SONGS);
+      const featured = shuffledTrending.slice(0, 16);
+      const newDrops = shuffleArray(dedupe([...saavnNew, ...saavnGlobalHits, ...ytTamilTrending, ...saavnTamil.slice(6)]));
+      const chillTracks = shuffleArray(
+        dedupe([
+          ...saavnChill,
+          ...shuffledTrending.filter((s) =>
+            ['Lo-Fi', 'Chill', 'Acoustic', 'Melody', 'Ambient', 'Piano'].some((g) =>
+              (s.genre || '').includes(g) || (s.title || '').includes(g)
+            )
+          ),
+          ...CURATED_FEATURED_SONGS.filter((s) => (s.genre || '').includes('Melody') || (s.genre || '').includes('Romantic'))
+        ])
+      );
 
       return {
-        featured: featured.length > 0 ? featured : CURATED_FEATURED_SONGS.slice(0, 8),
-        trending: trending.length > 0 ? trending : CURATED_FEATURED_SONGS,
-        newReleases: newDrops.length > 0 ? newDrops : trending.slice(2, 16),
-        chillOut: chillTracks.length > 0 ? chillTracks : CURATED_FEATURED_SONGS
+        featured: featured.length > 0 ? featured : shuffleArray(CURATED_FEATURED_SONGS).slice(0, 8),
+        trending: shuffledTrending,
+        youtubeTrending: youtubeTrending.length > 0 ? youtubeTrending : shuffleArray(curatedYouTube),
+        instagramTrending: instagramTrending.length > 0 ? instagramTrending : shuffleArray(curatedInsta),
+        spotifyTrending: spotifyTrending.length > 0 ? spotifyTrending : shuffleArray(curatedSpotify),
+        googleTrending: googleTrending.length > 0 ? googleTrending : shuffleArray(curatedGoogle),
+        newReleases: newDrops.length > 0 ? newDrops : shuffledTrending.slice(2, 16),
+        chillOut: chillTracks.length > 0 ? chillTracks : shuffleArray(CURATED_FEATURED_SONGS)
       };
     } catch (error) {
       console.warn('[MusicApi] Feed fetch error, fallback to curated:', error);
+      const fallbackCurated = shuffleArray(CURATED_FEATURED_SONGS);
       return {
-        featured: CURATED_FEATURED_SONGS.slice(0, 8),
-        trending: CURATED_FEATURED_SONGS,
-        newReleases: CURATED_FEATURED_SONGS.slice(2, 10),
-        chillOut: CURATED_FEATURED_SONGS
+        featured: fallbackCurated.slice(0, 8),
+        trending: fallbackCurated,
+        youtubeTrending: fallbackCurated.slice(0, 10).map((s) => ({ ...s, trendingSource: 'youtube' })),
+        instagramTrending: fallbackCurated.slice(10, 20).map((s) => ({ ...s, trendingSource: 'instagram' })),
+        spotifyTrending: fallbackCurated.slice(5, 15).map((s) => ({ ...s, trendingSource: 'spotify' })),
+        googleTrending: fallbackCurated.slice(12, 22).map((s) => ({ ...s, trendingSource: 'google' })),
+        newReleases: fallbackCurated.slice(2, 10),
+        chillOut: fallbackCurated
       };
     }
   },

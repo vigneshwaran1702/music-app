@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   Image,
   RefreshControl,
-  Platform
+  Platform,
+  Animated
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useMusic } from '../hooks/useMusic';
 import { usePlayer } from '../hooks/usePlayer';
 import { useResponsive } from '../hooks/useResponsive';
+import { useAuth } from '../context/AuthContext';
 import { historyDb } from '../database/history';
 import { favoritesDb } from '../database/favorites';
 import { Song } from '../types/music';
@@ -24,21 +26,41 @@ import { SongCard } from '../components/SongCard';
 import { ArtistCard } from '../components/ArtistCard';
 import { AlbumCard } from '../components/AlbumCard';
 import { Loading } from '../components/Loading';
+import { LoginModal } from '../components/LoginModal';
 import { APP_CONFIG } from '../constants/config';
 
-type HomeFilter = 'all' | 'tamil' | 'music' | 'trending';
+type HomeFilter = 'all' | 'youtube' | 'instagram' | 'spotify' | 'google' | 'tamil';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { isDesktop, isTablet, isMobile } = useResponsive();
-  const { loading, featured, trending, newReleases, chillOut, refresh } = useMusic();
+  const { user, isLoggedIn, triggerShuffle } = useAuth();
+  const {
+    loading,
+    featured,
+    trending,
+    youtubeTrending,
+    instagramTrending,
+    spotifyTrending,
+    googleTrending,
+    newReleases,
+    chillOut,
+    refresh,
+    shuffleFeed
+  } = useMusic();
   const { playTrack, currentTrack } = usePlayer();
 
   const [activeFilter, setActiveFilter] = useState<HomeFilter>('all');
   const [recentHistory, setRecentHistory] = useState<Song[]>([]);
   const [likedCount, setLikedCount] = useState<number>(0);
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [shuffleToast, setShuffleToast] = useState<string | null>(null);
 
   // Carousel refs for desktop scroll arrows
+  const ytScrollRef = useRef<ScrollView>(null);
+  const igScrollRef = useRef<ScrollView>(null);
+  const spotifyScrollRef = useRef<ScrollView>(null);
+  const googleScrollRef = useRef<ScrollView>(null);
   const tamilScrollRef = useRef<ScrollView>(null);
   const trendingScrollRef = useRef<ScrollView>(null);
   const artistScrollRef = useRef<ScrollView>(null);
@@ -49,11 +71,25 @@ export default function HomeScreen() {
     favoritesDb.getFavorites().then((favs) => setLikedCount(favs.length));
   }, [currentTrack]);
 
+  const showShuffleFeedback = (msg = 'Shuffled! Songs randomized across YouTube, Instagram, Spotify & Google') => {
+    setShuffleToast(msg);
+    setTimeout(() => {
+      setShuffleToast(null);
+    }, 4000);
+  };
+
+  const handleManualShuffle = () => {
+    shuffleFeed();
+    triggerShuffle();
+    showShuffleFeedback('🔀 Shuffled! Discover fresh trending hits across all platforms.');
+  };
+
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    const nameStr = user?.name ? `, ${user.name.split(' ')[0]}` : '';
+    if (hour < 12) return `Good morning${nameStr}`;
+    if (hour < 18) return `Good afternoon${nameStr}`;
+    return `Good evening${nameStr}`;
   };
 
   const tamilSongs = trending.filter(
@@ -66,42 +102,67 @@ export default function HomeScreen() {
   const rahmanSongs = trending.filter(
     (s) => s.artistName.toLowerCase().includes('rahman') || s.artistId === 'artist_arrahman'
   );
-  const jailerSongs = trending.filter(
-    (s) => (s.albumTitle || '').toLowerCase().includes('jailer') || s.albumId === 'album_jailer'
-  );
 
   const quickAccessItems = [
+    {
+      id: 'qa_yt',
+      title: 'YouTube Trending',
+      icon: 'logo-youtube',
+      bg: '#dc2626',
+      route: '#youtube',
+      songs: youtubeTrending,
+      onPress: () => {
+        if (youtubeTrending.length > 0) playTrack(youtubeTrending[0], youtubeTrending);
+      }
+    },
+    {
+      id: 'qa_ig',
+      title: 'Instagram Reels Viral',
+      icon: 'logo-instagram',
+      bg: '#e1306c',
+      route: '#instagram',
+      songs: instagramTrending,
+      onPress: () => {
+        if (instagramTrending.length > 0) playTrack(instagramTrending[0], instagramTrending);
+      }
+    },
+    {
+      id: 'qa_spotify',
+      title: 'Spotify Top 50',
+      icon: 'musical-notes',
+      bg: '#16a34a',
+      route: '#spotify',
+      songs: spotifyTrending,
+      onPress: () => {
+        if (spotifyTrending.length > 0) playTrack(spotifyTrending[0], spotifyTrending);
+      }
+    },
+    {
+      id: 'qa_google',
+      title: 'Google Trends',
+      icon: 'search',
+      bg: '#2563eb',
+      route: '#google',
+      songs: googleTrending,
+      onPress: () => {
+        if (googleTrending.length > 0) playTrack(googleTrending[0], googleTrending);
+      }
+    },
     {
       id: 'qa_liked',
       title: 'Liked Songs',
       icon: 'heart',
-      bg: '#450af5',
+      bg: '#4f46e5',
       route: '/favorites',
       songs: trending
     },
     {
       id: 'qa_tamil',
-      title: 'Top Tamil Chartbusters',
+      title: 'Tamil Chartbusters',
       icon: 'flame',
       bg: '#ea580c',
       route: '/tamil',
       songs: tamilSongs.length > 0 ? tamilSongs : trending
-    },
-    {
-      id: 'qa_anirudh',
-      title: 'Anirudh Hits',
-      icon: 'flash',
-      bg: '#eab308',
-      route: '/artist/artist_anirudh',
-      songs: anirudhSongs.length > 0 ? anirudhSongs : trending
-    },
-    {
-      id: 'qa_arrahman',
-      title: 'A.R. Rahman Essentials',
-      icon: 'musical-notes',
-      bg: '#0284c7',
-      route: '/artist/artist_arrahman',
-      songs: rahmanSongs.length > 0 ? rahmanSongs : trending
     },
     {
       id: 'qa_history',
@@ -113,27 +174,11 @@ export default function HomeScreen() {
     },
     {
       id: 'qa_fresh',
-      title: 'New Releases 2024',
+      title: 'New Releases',
       icon: 'sparkles',
       bg: '#7c3aed',
       route: '/search',
       songs: newReleases
-    },
-    {
-      id: 'qa_jailer',
-      title: 'Jailer (Soundtrack)',
-      icon: 'disc',
-      bg: '#b91c1c',
-      route: '/album/album_jailer',
-      songs: jailerSongs.length > 0 ? jailerSongs : trending
-    },
-    {
-      id: 'qa_chill',
-      title: 'Chill Lo-Fi Beats',
-      icon: 'cafe',
-      bg: '#4f46e5',
-      route: '/search',
-      songs: chillOut
     }
   ];
 
@@ -174,14 +219,99 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Filter Pills */}
-        <View style={styles.topFilterPills}>
+        {/* Filter Pills with Horizontal Scroll on Mobile */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.topFilterScrollContent}
+          style={styles.topFilterPills}
+        >
           <TouchableOpacity
             style={[styles.topPill, activeFilter === 'all' && styles.topPillActive]}
             onPress={() => setActiveFilter('all')}
           >
             <Text style={[styles.topPillText, activeFilter === 'all' && styles.topPillTextActive]}>
               All
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.topPill, activeFilter === 'youtube' && styles.topPillActive, styles.youtubePill]}
+            onPress={() => setActiveFilter('youtube')}
+          >
+            <Ionicons
+              name="logo-youtube"
+              size={14}
+              color={activeFilter === 'youtube' ? '#dc2626' : '#ef4444'}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.topPillText,
+                { color: activeFilter === 'youtube' ? '#000000' : '#ef4444', fontWeight: '700' }
+              ]}
+            >
+              YouTube
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.topPill, activeFilter === 'instagram' && styles.topPillActive, styles.instaPill]}
+            onPress={() => setActiveFilter('instagram')}
+          >
+            <Ionicons
+              name="logo-instagram"
+              size={14}
+              color={activeFilter === 'instagram' ? '#e1306c' : '#f43f5e'}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.topPillText,
+                { color: activeFilter === 'instagram' ? '#000000' : '#f43f5e', fontWeight: '700' }
+              ]}
+            >
+              Instagram
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.topPill, activeFilter === 'spotify' && styles.topPillActive, styles.spotifyPill]}
+            onPress={() => setActiveFilter('spotify')}
+          >
+            <Ionicons
+              name="musical-notes"
+              size={14}
+              color={activeFilter === 'spotify' ? '#16a34a' : '#22c55e'}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.topPillText,
+                { color: activeFilter === 'spotify' ? '#000000' : '#22c55e', fontWeight: '700' }
+              ]}
+            >
+              Spotify
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.topPill, activeFilter === 'google' && styles.topPillActive, styles.googlePill]}
+            onPress={() => setActiveFilter('google')}
+          >
+            <Ionicons
+              name="search"
+              size={14}
+              color={activeFilter === 'google' ? '#2563eb' : '#60a5fa'}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.topPillText,
+                { color: activeFilter === 'google' ? '#000000' : '#60a5fa', fontWeight: '700' }
+              ]}
+            >
+              Google
             </Text>
           </TouchableOpacity>
 
@@ -193,35 +323,41 @@ export default function HomeScreen() {
               Tamil Hits 🇮🇳
             </Text>
           </TouchableOpacity>
+        </ScrollView>
 
+        {/* Right Header Actions: Reshuffle Button + Profile Avatar */}
+        <View style={styles.headerRightActions}>
           <TouchableOpacity
-            style={[styles.topPill, activeFilter === 'music' && styles.topPillActive]}
-            onPress={() => setActiveFilter('music')}
+            style={styles.shuffleHeaderBtn}
+            onPress={handleManualShuffle}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.topPillText, activeFilter === 'music' && styles.topPillTextActive]}>
-              Music
-            </Text>
+            <Ionicons name="shuffle" size={16} color="#000000" />
+            {!isMobile && <Text style={styles.shuffleHeaderBtnText}>Shuffle</Text>}
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.topPill, activeFilter === 'trending' && styles.topPillActive]}
-            onPress={() => setActiveFilter('trending')}
+            style={styles.userAvatarBtn}
+            onPress={() => setShowLoginModal(true)}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.topPillText, activeFilter === 'trending' && styles.topPillTextActive]}>
-              Trending
-            </Text>
+            {user?.avatar ? (
+              <Image source={{ uri: user.avatar }} style={styles.userAvatarImg} />
+            ) : (
+              <Ionicons name="person" size={16} color="#ffffff" />
+            )}
+            {isLoggedIn && <View style={styles.onlineBadgeDot} />}
           </TouchableOpacity>
         </View>
-
-        {/* User Profile Avatar */}
-        <TouchableOpacity
-          style={styles.userAvatarBtn}
-          onPress={() => router.push('/library' as any)}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="person" size={16} color="#ffffff" />
-        </TouchableOpacity>
       </View>
+
+      {/* Floating Shuffled Feedback Toast Notification */}
+      {shuffleToast && (
+        <View style={styles.toastBanner}>
+          <Ionicons name="sparkles" size={16} color="#1ed760" style={{ marginRight: 8 }} />
+          <Text style={styles.toastText}>{shuffleToast}</Text>
+        </View>
+      )}
 
       <ScrollView
         contentContainerStyle={[styles.scrollContent, isMobile && { paddingBottom: 170 }]}
@@ -229,7 +365,10 @@ export default function HomeScreen() {
         refreshControl={
           <RefreshControl
             refreshing={loading}
-            onRefresh={refresh}
+            onRefresh={() => {
+              refresh();
+              showShuffleFeedback('Feed refreshed & reshuffled!');
+            }}
             tintColor="#1ed760"
           />
         }
@@ -241,10 +380,28 @@ export default function HomeScreen() {
           end={{ x: 0, y: 1 }}
           style={[styles.ambientBackdrop, isMobile && { paddingHorizontal: 16 }]}
         >
-          {/* Greeting */}
-          <Text style={[styles.greetingHeading, isMobile && { fontSize: 24, marginBottom: 14 }]}>
-            {getGreeting()}
-          </Text>
+          {/* Greeting Row with User Profile Summary */}
+          <View style={styles.greetingRow}>
+            <View>
+              <Text style={[styles.greetingHeading, isMobile && { fontSize: 24, marginBottom: 4 }]}>
+                {getGreeting()}
+              </Text>
+              <Text style={styles.greetingSubtext}>
+                {isLoggedIn
+                  ? `Logged in as ${user?.name} • Shuffled on login`
+                  : 'Songs automatically shuffled across YouTube, Instagram, Spotify & Google'}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.reShufflePillBtn}
+              onPress={handleManualShuffle}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="shuffle" size={15} color="#1ed760" style={{ marginRight: 5 }} />
+              <Text style={styles.reShufflePillText}>Shuffle Home</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Scalable Pinned Quick Access Grid */}
           <View style={styles.quickAccessGrid}>
@@ -256,7 +413,13 @@ export default function HomeScreen() {
                   isDesktop ? styles.quickAccessTileDesktop : isTablet ? styles.quickAccessTileTablet : styles.quickAccessTileMobile
                 ]}
                 activeOpacity={0.8}
-                onPress={() => router.push(item.route as any)}
+                onPress={() => {
+                  if (item.onPress) {
+                    item.onPress();
+                  } else {
+                    router.push(item.route as any);
+                  }
+                }}
               >
                 <View style={[styles.quickTileThumb, { backgroundColor: item.bg }]}>
                   <Ionicons name={item.icon as any} size={20} color="#ffffff" />
@@ -285,10 +448,231 @@ export default function HomeScreen() {
         </LinearGradient>
 
         {loading && !featured.length ? (
-          <Loading message="Streaming music catalog..." />
+          <Loading message="Streaming & shuffling trending music..." />
         ) : (
           <View style={styles.sectionsContainer}>
-            {/* 1. Tamil Music Spotlight Hub Banner */}
+
+            {/* 1. YOUTUBE TRENDING SECTION (Shown for 'all' or 'youtube') */}
+            {(activeFilter === 'all' || activeFilter === 'youtube') && (
+              <View style={styles.sectionBlock}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.platformSectionTitleRow}>
+                    <View style={[styles.platformIconBadge, { backgroundColor: '#dc2626' }]}>
+                      <Ionicons name="logo-youtube" size={16} color="#ffffff" />
+                    </View>
+                    <View>
+                      <Text style={styles.sectionTitle}>Trending on YouTube</Text>
+                      <Text style={styles.sectionSubTitle}>
+                        Viral music videos, 1B+ view anthems & chartbusters breaking records
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.sectionHeaderRight}>
+                    <TouchableOpacity
+                      style={styles.platformShuffleSmallBtn}
+                      onPress={handleManualShuffle}
+                    >
+                      <Ionicons name="shuffle" size={14} color="#ef4444" />
+                      <Text style={[styles.showAllText, { color: '#ef4444' }]}>Shuffle</Text>
+                    </TouchableOpacity>
+                    {!isMobile && (
+                      <View style={styles.carouselArrowsRow}>
+                        <TouchableOpacity
+                          style={styles.arrowSmallBtn}
+                          onPress={() => scrollCarousel(ytScrollRef, 'left')}
+                        >
+                          <Ionicons name="chevron-back" size={16} color="#ffffff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.arrowSmallBtn}
+                          onPress={() => scrollCarousel(ytScrollRef, 'right')}
+                        >
+                          <Ionicons name="chevron-forward" size={16} color="#ffffff" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <ScrollView
+                  ref={ytScrollRef}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.cardsRow}
+                >
+                  {(youtubeTrending.length > 0 ? youtubeTrending : trending).map((song) => (
+                    <SongCard key={`yt_${song.id}`} song={song} playlist={youtubeTrending} variant="card" />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* 2. INSTAGRAM REELS VIRAL SECTION (Shown for 'all' or 'instagram') */}
+            {(activeFilter === 'all' || activeFilter === 'instagram') && (
+              <View style={styles.sectionBlock}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.platformSectionTitleRow}>
+                    <View style={[styles.platformIconBadge, { backgroundColor: '#e1306c' }]}>
+                      <Ionicons name="logo-instagram" size={16} color="#ffffff" />
+                    </View>
+                    <View>
+                      <Text style={styles.sectionTitle}>Viral on Instagram Reels</Text>
+                      <Text style={styles.sectionSubTitle}>
+                        Top trending audio, background hooks & viral sounds taking over feeds
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.sectionHeaderRight}>
+                    <TouchableOpacity
+                      style={styles.platformShuffleSmallBtn}
+                      onPress={handleManualShuffle}
+                    >
+                      <Ionicons name="shuffle" size={14} color="#f43f5e" />
+                      <Text style={[styles.showAllText, { color: '#f43f5e' }]}>Shuffle</Text>
+                    </TouchableOpacity>
+                    {!isMobile && (
+                      <View style={styles.carouselArrowsRow}>
+                        <TouchableOpacity
+                          style={styles.arrowSmallBtn}
+                          onPress={() => scrollCarousel(igScrollRef, 'left')}
+                        >
+                          <Ionicons name="chevron-back" size={16} color="#ffffff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.arrowSmallBtn}
+                          onPress={() => scrollCarousel(igScrollRef, 'right')}
+                        >
+                          <Ionicons name="chevron-forward" size={16} color="#ffffff" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <ScrollView
+                  ref={igScrollRef}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.cardsRow}
+                >
+                  {(instagramTrending.length > 0 ? instagramTrending : trending).map((song) => (
+                    <SongCard key={`ig_${song.id}`} song={song} playlist={instagramTrending} variant="card" />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* 3. SPOTIFY TOP CHARTS SECTION (Shown for 'all' or 'spotify') */}
+            {(activeFilter === 'all' || activeFilter === 'spotify') && (
+              <View style={styles.sectionBlock}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.platformSectionTitleRow}>
+                    <View style={[styles.platformIconBadge, { backgroundColor: '#16a34a' }]}>
+                      <Ionicons name="musical-notes" size={16} color="#ffffff" />
+                    </View>
+                    <View>
+                      <Text style={styles.sectionTitle}>Top Charts on Spotify</Text>
+                      <Text style={styles.sectionSubTitle}>
+                        Global Top 50, Today's Top Hits & most streamed tracks worldwide
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.sectionHeaderRight}>
+                    <TouchableOpacity
+                      style={styles.platformShuffleSmallBtn}
+                      onPress={handleManualShuffle}
+                    >
+                      <Ionicons name="shuffle" size={14} color="#22c55e" />
+                      <Text style={[styles.showAllText, { color: '#22c55e' }]}>Shuffle</Text>
+                    </TouchableOpacity>
+                    {!isMobile && (
+                      <View style={styles.carouselArrowsRow}>
+                        <TouchableOpacity
+                          style={styles.arrowSmallBtn}
+                          onPress={() => scrollCarousel(spotifyScrollRef, 'left')}
+                        >
+                          <Ionicons name="chevron-back" size={16} color="#ffffff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.arrowSmallBtn}
+                          onPress={() => scrollCarousel(spotifyScrollRef, 'right')}
+                        >
+                          <Ionicons name="chevron-forward" size={16} color="#ffffff" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <ScrollView
+                  ref={spotifyScrollRef}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.cardsRow}
+                >
+                  {(spotifyTrending.length > 0 ? spotifyTrending : trending).map((song) => (
+                    <SongCard key={`spot_${song.id}`} song={song} playlist={spotifyTrending} variant="card" />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* 4. GOOGLE SEARCH TRENDS SECTION (Shown for 'all' or 'google') */}
+            {(activeFilter === 'all' || activeFilter === 'google') && (
+              <View style={styles.sectionBlock}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.platformSectionTitleRow}>
+                    <View style={[styles.platformIconBadge, { backgroundColor: '#2563eb' }]}>
+                      <Ionicons name="search" size={16} color="#ffffff" />
+                    </View>
+                    <View>
+                      <Text style={styles.sectionTitle}>Trending on Google</Text>
+                      <Text style={styles.sectionSubTitle}>
+                        Most searched songs, viral search queries & breakout movie soundtracks
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.sectionHeaderRight}>
+                    <TouchableOpacity
+                      style={styles.platformShuffleSmallBtn}
+                      onPress={handleManualShuffle}
+                    >
+                      <Ionicons name="shuffle" size={14} color="#60a5fa" />
+                      <Text style={[styles.showAllText, { color: '#60a5fa' }]}>Shuffle</Text>
+                    </TouchableOpacity>
+                    {!isMobile && (
+                      <View style={styles.carouselArrowsRow}>
+                        <TouchableOpacity
+                          style={styles.arrowSmallBtn}
+                          onPress={() => scrollCarousel(googleScrollRef, 'left')}
+                        >
+                          <Ionicons name="chevron-back" size={16} color="#ffffff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.arrowSmallBtn}
+                          onPress={() => scrollCarousel(googleScrollRef, 'right')}
+                        >
+                          <Ionicons name="chevron-forward" size={16} color="#ffffff" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <ScrollView
+                  ref={googleScrollRef}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.cardsRow}
+                >
+                  {(googleTrending.length > 0 ? googleTrending : trending).map((song) => (
+                    <SongCard key={`goog_${song.id}`} song={song} playlist={googleTrending} variant="card" />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* 5. Tamil Music Spotlight Hub Banner */}
             <TouchableOpacity
               style={[styles.tamilHubBanner, isMobile && { marginHorizontal: 16 }]}
               activeOpacity={0.9}
@@ -315,7 +699,7 @@ export default function HomeScreen() {
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* 2. Top Tamil Hits Section with Navigation Arrows */}
+            {/* 6. Top Tamil Hits Section with Navigation Arrows */}
             {tamilSongs.length > 0 && (
               <View style={styles.sectionBlock}>
                 <View style={styles.sectionHeader}>
@@ -339,27 +723,7 @@ export default function HomeScreen() {
               </View>
             )}
 
-            {/* 3. Trending Now Worldwide */}
-            <View style={styles.sectionBlock}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Trending Now</Text>
-                <TouchableOpacity onPress={() => router.push('/search' as any)}>
-                  <Text style={styles.showAllText}>Show all</Text>
-                </TouchableOpacity>
-              </View>
-              <ScrollView
-                ref={trendingScrollRef}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.cardsRow}
-              >
-                {trending.map((song) => (
-                  <SongCard key={song.id} song={song} playlist={trending} variant="card" />
-                ))}
-              </ScrollView>
-            </View>
-
-            {/* 4. Popular Artists */}
+            {/* 7. Popular Artists */}
             <View style={styles.sectionBlock}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Popular Artists</Text>
@@ -379,7 +743,7 @@ export default function HomeScreen() {
               </ScrollView>
             </View>
 
-            {/* 5. Tamil Mood & Vibe Albums */}
+            {/* 8. Tamil Mood & Vibe Albums */}
             <View style={styles.sectionBlock}>
               <View style={styles.sectionHeader}>
                 <View>
@@ -404,7 +768,7 @@ export default function HomeScreen() {
               </ScrollView>
             </View>
 
-            {/* 5b. Movie Soundtracks & OSTs */}
+            {/* 9. Movie Soundtracks & OSTs */}
             <View style={styles.sectionBlock}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Blockbuster Soundtracks & OSTs</Text>
@@ -423,7 +787,7 @@ export default function HomeScreen() {
               </ScrollView>
             </View>
 
-            {/* 6. Fresh Releases */}
+            {/* 10. Fresh Releases */}
             <View style={styles.sectionBlock}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Fresh Drops & Singles</Text>
@@ -439,7 +803,7 @@ export default function HomeScreen() {
               </ScrollView>
             </View>
 
-            {/* 7. Chill & Lo-Fi Selection */}
+            {/* 11. Chill & Lo-Fi Selection */}
             {chillOut.length > 0 && (
               <View style={styles.sectionBlock}>
                 <View style={styles.sectionHeader}>
@@ -459,6 +823,13 @@ export default function HomeScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Login / Profile Modal */}
+      <LoginModal
+        visible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onShuffled={() => showShuffleFeedback('🔀 Welcome back! Feed reshuffled with fresh trending tracks.')}
+      />
     </SafeAreaView>
   );
 }
@@ -469,26 +840,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212'
   },
   scrollContent: {
-    paddingBottom: 120
+    paddingBottom: 130
   },
   topStickyHeader: {
+    height: 64,
+    backgroundColor: 'rgba(18, 18, 18, 0.94)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    backgroundColor: 'rgba(18, 18, 18, 0.95)',
-    zIndex: 10
+    paddingHorizontal: 16,
+    zIndex: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)'
   },
   navHistoryArrows: {
     flexDirection: 'row',
-    gap: 8
+    alignItems: 'center'
   },
   arrowCircle: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -498,9 +871,9 @@ const styles = StyleSheet.create({
     gap: 8
   },
   mobileLogo: {
-    width: 34,
-    height: 34,
-    borderRadius: 17
+    width: 32,
+    height: 32,
+    borderRadius: 16
   },
   mobileBrandText: {
     fontSize: 16,
@@ -509,26 +882,52 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3
   },
   topFilterPills: {
-    flexDirection: 'row',
-    gap: 8,
     flex: 1,
-    marginLeft: 16
+    marginHorizontal: 10
+  },
+  topFilterScrollContent: {
+    alignItems: 'center',
+    gap: 6,
+    paddingRight: 8
   },
   topPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#232323',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 16,
-    transition: 'background-color 0.15s ease'
-  } as any,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16
+  },
   topPillActive: {
     backgroundColor: '#ffffff'
   },
+  youtubePill: {
+    backgroundColor: 'rgba(220, 38, 38, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.3)'
+  },
+  instaPill: {
+    backgroundColor: 'rgba(225, 48, 108, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(225, 48, 108, 0.3)'
+  },
+  spotifyPill: {
+    backgroundColor: 'rgba(22, 163, 74, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(22, 163, 74, 0.3)'
+  },
+  googlePill: {
+    backgroundColor: 'rgba(37, 99, 235, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 235, 0.3)'
+  },
   tamilSpecialPill: {
-    backgroundColor: 'rgba(249, 115, 22, 0.15)'
+    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(249, 115, 22, 0.3)'
   },
   topPillText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#ffffff'
   },
@@ -536,25 +935,103 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontWeight: '700'
   },
-  userAvatarBtn: {
-    width: 32,
-    height: 32,
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  shuffleHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1ed760',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 16,
+    gap: 4
+  },
+  shuffleHeaderBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#000000'
+  },
+  userAvatarBtn: {
+    position: 'relative',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: '#282828',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)'
+  },
+  userAvatarImg: {
+    width: 31,
+    height: 31,
+    borderRadius: 15.5
+  },
+  onlineBadgeDot: {
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#1ed760',
+    borderWidth: 1.5,
+    borderColor: '#121212'
+  },
+  toastBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#18181b',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1ed760',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    zIndex: 9
+  },
+  toastText: {
+    color: '#e4e4e7',
+    fontSize: 13,
+    fontWeight: '600'
   },
   ambientBackdrop: {
     paddingHorizontal: 24,
     paddingTop: 20,
     paddingBottom: 28
   },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 20
+  },
   greetingHeading: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '800',
     color: '#ffffff',
-    letterSpacing: -0.5,
-    marginBottom: 20
+    letterSpacing: -0.5
+  },
+  greetingSubtext: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginTop: 4
+  },
+  reShufflePillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(30, 215, 96, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(30, 215, 96, 0.3)'
+  },
+  reShufflePillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1ed760'
   },
   quickAccessGrid: {
     flexDirection: 'row',
@@ -568,9 +1045,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 6,
     overflow: 'hidden',
-    paddingRight: 12,
-    transition: 'background-color 0.2s ease'
-  } as any,
+    paddingRight: 12
+  },
   quickAccessTileDesktop: {
     width: 'calc(25% - 9px)' as any
   },
@@ -609,6 +1085,76 @@ const styles = StyleSheet.create({
   sectionsContainer: {
     paddingTop: 12,
     paddingBottom: 150
+  },
+  sectionBlock: {
+    marginBottom: 36
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 16
+  },
+  platformSectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1
+  },
+  platformIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: -0.3
+  },
+  sectionSubTitle: {
+    fontSize: 12,
+    color: '#a1a1aa',
+    marginTop: 2
+  },
+  sectionHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10
+  },
+  platformShuffleSmallBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)'
+  },
+  carouselArrowsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  arrowSmallBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  showAllText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#a7a7a7'
+  },
+  cardsRow: {
+    paddingLeft: 24,
+    paddingRight: 12
   },
   tamilHubBanner: {
     marginHorizontal: 24,
@@ -658,35 +1204,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
     justifyContent: 'center',
     alignItems: 'center'
-  },
-  sectionBlock: {
-    marginBottom: 36
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    paddingHorizontal: 24,
-    marginBottom: 16
-  },
-  sectionHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: -0.3
-  },
-  showAllText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#a7a7a7'
-  },
-  cardsRow: {
-    paddingLeft: 24,
-    paddingRight: 12
   }
 });
