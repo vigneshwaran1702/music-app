@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet, View, Platform } from 'react-native';
 import { PlayerProvider } from '../context/PlayerContext';
+import { AuthProvider } from '../context/AuthContext';
 import { MiniPlayer } from '../components/MiniPlayer';
 import { BottomBarPlayer } from '../components/BottomBarPlayer';
 import { Sidebar } from '../components/Sidebar';
@@ -254,9 +255,11 @@ function AppLayout() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <PlayerProvider>
-        <AppLayout />
-      </PlayerProvider>
+      <AuthProvider>
+        <PlayerProvider>
+          <AppLayout />
+        </PlayerProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

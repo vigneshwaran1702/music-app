@@ -15,6 +15,8 @@ import { favoritesDb } from '../database/favorites';
 import { Playlist } from '../types/playlist';
 import { getPlaylistCover } from '../constants/artistImages';
 import { CreatePlaylistModal } from './CreatePlaylistModal';
+import { LoginModal } from './LoginModal';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
   onNavigate?: () => void;
@@ -25,10 +27,12 @@ type LibraryFilter = 'all' | 'playlists' | 'artists';
 export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
   const router = useRouter();
   const pathname = usePathname();
+  const { user, isLoggedIn, triggerShuffle } = useAuth();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [likedCount, setLikedCount] = useState<number>(0);
   const [filter, setFilter] = useState<LibraryFilter>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     loadSidebarData();
@@ -111,6 +115,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
             </TouchableOpacity>
           );
         })}
+
+        {/* User Account & Shuffle Row */}
+        <TouchableOpacity
+          style={styles.sidebarUserRow}
+          onPress={() => setShowLoginModal(true)}
+          activeOpacity={0.8}
+        >
+          {user?.avatar ? (
+            <Image source={{ uri: user.avatar }} style={styles.sidebarUserAvatar} />
+          ) : (
+            <View style={styles.sidebarUserAvatarFallback}>
+              <Ionicons name="person" size={14} color="#ffffff" />
+            </View>
+          )}
+          <View style={styles.sidebarUserMeta}>
+            <Text numberOfLines={1} style={styles.sidebarUserName}>
+              {user?.name || 'Guest Listener'}
+            </Text>
+            <Text style={styles.sidebarUserSub}>
+              {isLoggedIn ? '● Shuffled on login' : 'Tap to log in & shuffle'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.sidebarShuffleBtn}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              triggerShuffle();
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="shuffle" size={16} color="#1ed760" />
+          </TouchableOpacity>
+        </TouchableOpacity>
       </View>
 
       {/* Library Block (Spotify style Island 2) */}
@@ -257,6 +294,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreated={() => loadSidebarData()}
+      />
+
+      {/* Profile & Login Modal */}
+      <LoginModal
+        visible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
       />
     </View>
   );
@@ -486,5 +529,53 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 12,
     fontWeight: '700'
+  },
+  sidebarUserRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#18181b',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 10,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)'
+  },
+  sidebarUserAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#1ed760'
+  },
+  sidebarUserAvatarFallback: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#27272a',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  sidebarUserMeta: {
+    flex: 1,
+    marginHorizontal: 8
+  },
+  sidebarUserName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#ffffff'
+  },
+  sidebarUserSub: {
+    fontSize: 10,
+    color: '#94a3b8',
+    marginTop: 1
+  },
+  sidebarShuffleBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(30, 215, 96, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center'
   }
 });
